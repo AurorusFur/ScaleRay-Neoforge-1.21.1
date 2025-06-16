@@ -52,8 +52,11 @@ public class ScaleRay {
     // Add the example block item to the building blocks tab
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if(event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-            event.accept(ModItems.SCALERAY);
             event.accept(ModItems.SCALINGCORE);
+            event.accept(ModItems.SCALETECHCASING);
+        }
+        if(event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.SCALERAY);
         }
     }
 
