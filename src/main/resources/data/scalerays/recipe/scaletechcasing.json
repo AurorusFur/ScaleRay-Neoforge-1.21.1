@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " i ",
+        "iEi",
+        " i "
+    ],
+    "key": {
+        "i": "minecraft:iron_ingot",
+        "E": "minecraft:emerald"
+    },
+    "result": {
+        "id": "scalerays:scaletechcasing",
+        "count": 4
+    }
+}

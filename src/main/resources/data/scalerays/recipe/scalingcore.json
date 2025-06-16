@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "###",
+        "#F#",
+        "###"
+    ],
+    "key": {
+        "#": "scalerays:scaletechcasing",
+        "F": "minecraft:flint"
+    },
+    "result": {
+        "id": "scalerays:scalingcore",
+        "count": 1
+    }
+}
