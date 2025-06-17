@@ -1,15 +1,21 @@
 {
     "type": "minecraft:crafting_shaped",
-    "pattern": [
-        "##S",
-        "#  "
-    ],
+    "category": "tools_and_utilities",
     "key": {
-        "#": "scalerays:scaletechcasing",
-        "S": "scalerays:scalingcore"
+        "C": {
+            "item": "scalerays:scaletechcasing"
+        },
+        "O": {
+            "item": "scalerays:scalingcore"
+        }
     },
+    "pattern": [
+        "   ",
+        "CCO",
+        "C  "
+    ],
     "result": {
-        "id": "scalerays:raygun",
-        "count": 1
+        "count": 1,
+        "id": "scalerays:raygun"
     }
 }

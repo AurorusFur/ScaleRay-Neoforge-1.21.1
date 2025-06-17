@@ -1,5 +1,6 @@
 package net.diavicecat.scaleray;
 
+import net.diavicecat.scaleray.block.ModBlocks;
 import net.diavicecat.scaleray.item.ModItems;
 import net.minecraft.world.item.CreativeModeTabs;
 import org.slf4j.Logger;
@@ -37,6 +38,7 @@ public class ScaleRay {
         NeoForge.EVENT_BUS.register(this);
 
         ModItems.register(modEventBus);
+        ModBlocks.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
@@ -54,6 +56,7 @@ public class ScaleRay {
         if(event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(ModItems.SCALINGCORE);
             event.accept(ModItems.SCALETECHCASING);
+            event.accept(ModBlocks.SCALINGCORE);
         }
         if(event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.SCALERAY);
