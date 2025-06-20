@@ -12,8 +12,6 @@ public class ModItems {
     public static final DeferredItem<Item> SCALERAY = ITEMS.register("scaleray",
             () -> new Item(new Item.Properties()));
 
-    public static final DeferredItem<Item> SCALINGCORE = ITEMS.register("scalingcore",
-            () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> SCALETECHCASING = ITEMS.register("scaletechcasing",
             () -> new Item(new Item.Properties()));

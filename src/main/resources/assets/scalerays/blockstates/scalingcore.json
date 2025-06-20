@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "": {
+      "model": "scalerays:block/scalingcore"
+    }
+  },
+  "lightLevel": 10
+}
