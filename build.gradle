@@ -4,6 +4,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.94'
     id 'idea'
     id 'org.jetbrains.kotlin.jvm' version '1.9.22'
+    id 'com.github.johnrengelman.shadow' version '8.1.1' // or latest
+
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -185,3 +187,12 @@ idea {
         downloadJavadoc = true
     }
 }
+shadowJar {
+    archiveClassifier.set('')
+    configurations = [project.configurations.implementation]
+    mergeServiceFiles()
+}
+jar {
+    enabled = false
+}
+build.dependsOn shadowJar

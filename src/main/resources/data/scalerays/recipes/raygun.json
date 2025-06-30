@@ -1,6 +1,5 @@
 {
     "type": "minecraft:crafting_shaped",
-    "category": "tools_and_utilities",
     "key": {
         "C": {
             "item": "scalerays:scaletechcasing"
@@ -15,7 +14,7 @@
         "C  "
     ],
     "result": {
-        "count": 1,
-        "id": "scalerays:raygun"
+        "item": "scalerays:scaleray",
+        "count": 1
     }
 }

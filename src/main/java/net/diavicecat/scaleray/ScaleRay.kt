@@ -1,79 +1,73 @@
-package net.diavicecat.scaleray;
+package net.diavicecat.scaleray
 
-import net.diavicecat.scaleray.block.ModBlocks;
-import net.diavicecat.scaleray.item.ModItems;
-import net.minecraft.world.item.CreativeModeTabs;
-import org.slf4j.Logger;
-
-import com.mojang.logging.LogUtils;
-
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
-import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import com.mojang.logging.LogUtils
+import net.diavicecat.scaleray.block.ModBlocks
+import net.diavicecat.scaleray.item.ModItems
+import net.minecraft.world.item.CreativeModeTabs
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.bus.api.IEventBus
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.ModContainer
+import net.neoforged.fml.common.EventBusSubscriber
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.config.ModConfig
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
+import net.neoforged.neoforge.event.server.ServerStartingEvent
+import org.slf4j.Logger
+import java.util.function.Consumer
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
-@Mod(ScaleRay.MOD_ID)
-public class ScaleRay {
-    public static final String MOD_ID = "scalerays";
-    private static final Logger LOGGER = LogUtils.getLogger();
-
+@Mod(ScaleRay.Companion.MOD_ID)
+class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
-    public ScaleRay(IEventBus modEventBus, ModContainer modContainer) {
+    init {
         // Register the commonSetup method for modloading
-        modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener<FMLCommonSetupEvent?>(Consumer { event: FMLCommonSetupEvent? -> this.commonSetup(event) })
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
-        NeoForge.EVENT_BUS.register(this);
+        NeoForge.EVENT_BUS.register(this)
 
-        ModItems.register(modEventBus);
-        ModBlocks.register(modEventBus);
+        ModItems.register(modEventBus)
+        ModBlocks.register(modEventBus)
 
         // Register the item to a creative tab
-        modEventBus.addListener(this::addCreative);
+        modEventBus.addListener<BuildCreativeModeTabContentsEvent?>(Consumer { event: BuildCreativeModeTabContentsEvent? ->
+            this.addCreative(
+                event!!
+            )
+        })
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC)
     }
 
-    private void commonSetup(final FMLCommonSetupEvent event) {
-
+    private fun commonSetup(event: FMLCommonSetupEvent?) {
     }
 
     // Add the example block item to the building blocks tab
-    private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        if(event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
-            event.accept(ModItems.SCALETECHCASING);
-            event.accept(ModBlocks.SCALINGCORE);
+    private fun addCreative(event: BuildCreativeModeTabContentsEvent) {
+        if (event.getTabKey() === CreativeModeTabs.INGREDIENTS) {
+            event.accept(ModItems.SCALETECHCASING)
+            event.accept(ModBlocks.SCALINGCORE)
         }
-        if(event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(ModItems.SCALERAY);
+        if (event.getTabKey() === CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.SCALERAY)
         }
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
-
+    fun onServerStarting(event: ServerStartingEvent?) {
     }
 
-    // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
-    @EventBusSubscriber(modid = MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ClientModEvents {
-        @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event) {
-
-        }
+    companion object {
+        const val MOD_ID: String = "scalerays"
+        private val LOGGER: Logger = LogUtils.getLogger()
     }
 }

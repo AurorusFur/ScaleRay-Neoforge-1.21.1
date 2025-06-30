@@ -1,38 +1,42 @@
-package net.diavicecat.scaleray.block;
+package net.diavicecat.scaleray.block
 
-import net.diavicecat.scaleray.ScaleRay;
-import net.diavicecat.scaleray.item.ModItems;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredBlock;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.diavicecat.scaleray.ScaleRay
+import net.diavicecat.scaleray.item.ModItems
+import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.Item
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.neoforged.bus.api.IEventBus
+import net.neoforged.neoforge.registries.DeferredBlock
+import net.neoforged.neoforge.registries.DeferredRegister
+import java.util.function.Supplier
 
-import java.util.function.Supplier;
+object ModBlocks {
+    val BLOCKS: DeferredRegister.Blocks = DeferredRegister.createBlocks(ScaleRay.MOD_ID)
+    @JvmField
+    val SCALINGCORE: DeferredBlock<Block?> = registerBlock<Block?>(
+        "scalingcore",
+        Supplier {
+            Block(
+                BlockBehaviour.Properties.of()
+                    .strength(4f).sound(SoundType.GLASS)
+            )
+        })
 
-public class ModBlocks {
-    public static final DeferredRegister.Blocks BLOCKS =
-            DeferredRegister.createBlocks(ScaleRay.MOD_ID);
-    public static final DeferredBlock<Block> SCALINGCORE = registerBlock("scalingcore",
-            () -> new Block(BlockBehaviour.Properties.of()
-                    .strength(4f).sound(SoundType.GLASS)));
 
-
-
-    private static <T extends Block> DeferredBlock<T> registerBlock(String name, Supplier<T> block) {
-        DeferredBlock<T> toReturn = BLOCKS.register(name, block);
-        registerBlockItem(name, toReturn);
-        return toReturn;
+    private fun <T : Block?> registerBlock(name: String, block: Supplier<T?>): DeferredBlock<T?> {
+        val toReturn = BLOCKS.register<T?>(name, block)
+        registerBlockItem<T?>(name, toReturn)
+        return toReturn
     }
 
-    private static <T extends Block> void registerBlockItem(String name, DeferredBlock<T> block) {
-        ModItems.ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
+    private fun <T : Block?> registerBlockItem(name: String, block: DeferredBlock<T?>) {
+        ModItems.ITEMS.register<BlockItem?>(name, Supplier { BlockItem(block.get(), Item.Properties()) })
     }
 
-    public static void register(IEventBus eventBus) {
-        BLOCKS.register(eventBus);
+    @JvmStatic
+    fun register(eventBus: IEventBus) {
+        BLOCKS.register(eventBus)
     }
 }
