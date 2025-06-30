@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "##S",
+        "#  "
+    ],
+    "key": {
+        "#": {
+            "item": "scalerays:scaletechcasing"
+        },
+        "S": {
+            "item": "scalerays:scalingcore"
+        }
+    },
+    "result": {
+        "id": "scalerays:scaleray",
+        "count": 1
+    }
+}
