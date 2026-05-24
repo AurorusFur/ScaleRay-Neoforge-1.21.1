@@ -3,19 +3,21 @@ package net.diavicecat.scaleray
 import com.mojang.logging.LogUtils
 import net.diavicecat.scaleray.block.ModBlocks
 import net.diavicecat.scaleray.item.ModItems
+import net.diavicecat.scaleray.network.ScaleRayPayload
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.CreativeModeTabs
-import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.config.ModConfig
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.neoforge.event.server.ServerStartingEvent
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
+import net.neoforged.neoforge.network.handling.IPayloadContext
 import org.slf4j.Logger
 import java.util.function.Consumer
 
@@ -27,6 +29,14 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
     init {
         // Register the commonSetup method for modloading
         modEventBus.addListener<FMLCommonSetupEvent?>(Consumer { event: FMLCommonSetupEvent? -> this.commonSetup(event) })
+        modEventBus.addListener<RegisterPayloadHandlersEvent> { event ->
+            val registrar = event.registrar(MOD_ID)
+            registrar.playToServer(
+                ScaleRayPayload.TYPE,
+                ScaleRayPayload.STREAM_CODEC,
+                ::handleScaleRayPayload
+            )
+        }
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
@@ -48,6 +58,20 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
     }
 
     private fun commonSetup(event: FMLCommonSetupEvent?) {
+    }
+
+    private fun handleScaleRayPayload(payload: ScaleRayPayload, context: IPayloadContext) {
+        context.enqueueWork {
+            val player = context.player() as? ServerPlayer ?: return@enqueueWork
+            val server = player.server
+            val source = player.createCommandSourceStack()
+            val command = when (payload.action) {
+                ScaleRayPayload.Action.SHRINK -> "scale add pehkui:base -0.1 @s"
+                ScaleRayPayload.Action.GROW -> "scale add pehkui:base 0.1 @s"
+                ScaleRayPayload.Action.RESET -> "scale set pehkui:base 1 @s"
+            }
+            server.commands.performPrefixedCommand(source, command)
+        }
     }
 
     // Add the example block item to the building blocks tab
