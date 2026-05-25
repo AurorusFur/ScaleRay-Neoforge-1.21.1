@@ -77,45 +77,56 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
     private fun handleScaleRayPayload(payload: ScaleRayPayload, context: IPayloadContext) {
         context.enqueueWork {
             val player = context.player() as? ServerPlayer ?: return@enqueueWork
-            val target = getLookedAtEntity(player, 10.0) ?: return@enqueueWork
+            val level  = player.level() as ServerLevel
             val server = player.server
 
-            applyScale(target, payload.action, server)
-            spawnLaserEffects(player, payload.beamStart, payload.beamEnd, player.level() as ServerLevel)
+            val target: Entity = when (payload.target) {
+                ScaleRayPayload.Target.OBSERVED -> getLookedAtEntity(player, 10.0) ?: return@enqueueWork
+                ScaleRayPayload.Target.SELF     -> player
+            }
+
+            applyScale(target, payload.mode, payload.power, server)
+
+            // Only show the laser beam when targeting an observed entity.
+            if (payload.target == ScaleRayPayload.Target.OBSERVED) {
+                spawnLaserEffects(player, payload.beamStart, payload.beamEnd, level)
+            } else {
+                level.playSound(null, player.x, player.y, player.z,
+                    SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.8f)
+            }
         }
     }
 
-    private fun applyScale(target: Entity, action: ScaleRayPayload.Action, server: MinecraftServer) {
-        if (tryPehkuiApi(target, action)) {
+    private fun applyScale(target: Entity, mode: ScaleRayPayload.Mode, power: Float, server: MinecraftServer) {
+        if (tryPehkuiApi(target, mode, power)) {
             LOGGER.debug("ScaleRay: applied scale via Pehkui API")
             return
         }
         LOGGER.debug("ScaleRay: Pehkui API unavailable, falling back to command")
-        // Pehkui API unavailable — fall back to command executed as server (permission level 4).
         val source = server.createCommandSourceStack()
             .withPermission(4)
             .withEntity(target)
             .withPosition(target.position())
             .withLevel(target.level() as ServerLevel)
-        val command = when (action) {
-            ScaleRayPayload.Action.SHRINK -> "scale add pehkui:base -0.1 @s"
-            ScaleRayPayload.Action.GROW   -> "scale add pehkui:base 0.1 @s"
-            ScaleRayPayload.Action.RESET  -> "scale set pehkui:base 1 @s"
+        val command = when (mode) {
+            ScaleRayPayload.Mode.SHRINK -> "scale add pehkui:base -$power @s"
+            ScaleRayPayload.Mode.GROW   -> "scale add pehkui:base $power @s"
+            ScaleRayPayload.Mode.RESET  -> "scale set pehkui:base 1 @s"
         }
         server.commands.performPrefixedCommand(source, command)
     }
 
-    private fun tryPehkuiApi(target: Entity, action: ScaleRayPayload.Action): Boolean {
+    private fun tryPehkuiApi(target: Entity, mode: ScaleRayPayload.Mode, power: Float): Boolean {
         return try {
             val scaleTypesClass = Class.forName("virtuoel.pehkui.api.ScaleTypes")
             val baseScaleType   = scaleTypesClass.getField("BASE").get(null)
             val getScaleData    = baseScaleType.javaClass.getMethod("getScaleData", Entity::class.java)
             val scaleData       = getScaleData.invoke(baseScaleType, target)
             val currentScale    = scaleData.javaClass.getMethod("getScale").invoke(scaleData) as Float
-            val newScale = when (action) {
-                ScaleRayPayload.Action.SHRINK -> (currentScale - 0.1f).coerceAtLeast(0.1f)
-                ScaleRayPayload.Action.GROW   -> currentScale + 0.1f
-                ScaleRayPayload.Action.RESET  -> 1.0f
+            val newScale = when (mode) {
+                ScaleRayPayload.Mode.SHRINK -> (currentScale - power).coerceAtLeast(0.1f)
+                ScaleRayPayload.Mode.GROW   -> currentScale + power
+                ScaleRayPayload.Mode.RESET  -> 1.0f
             }
             scaleData.javaClass.getMethod("setTargetScale", Float::class.javaPrimitiveType).invoke(scaleData, newScale)
             true
