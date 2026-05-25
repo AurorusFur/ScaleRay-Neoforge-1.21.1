@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "CIC",
+        "IEI",
+        "CIC"
+    ],
+    "key": {
+        "C": {
+            "item": "scalerays:scaletechcasing"
+        },
+        "I": {
+            "item": "minecraft:iron_ingot"
+        },
+        "E": {
+            "item": "minecraft:emerald"
+        }
+    },
+    "result": {
+        "id": "scalerays:chargingstation",
+        "count": 1
+    }
+}

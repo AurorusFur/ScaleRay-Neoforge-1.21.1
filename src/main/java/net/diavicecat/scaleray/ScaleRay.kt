@@ -1,29 +1,43 @@
 package net.diavicecat.scaleray
 
 import com.mojang.logging.LogUtils
+import net.diavicecat.scaleray.block.ModBlockEntities
 import net.diavicecat.scaleray.block.ModBlocks
+import net.diavicecat.scaleray.block.entity.ChargingStationBlockEntity
+import net.diavicecat.scaleray.client.ChargingStationMenuScreen
+import net.diavicecat.scaleray.client.ScaleRayMenuScreen
+import net.diavicecat.scaleray.item.ModCreativeTab
 import net.diavicecat.scaleray.item.ModItems
+import net.diavicecat.scaleray.component.ModDataComponents
+import net.diavicecat.scaleray.item.custom.PowerCellItem
+import net.diavicecat.scaleray.item.custom.ScaleRayItem
+import net.diavicecat.scaleray.menu.ModMenuTypes
 import net.diavicecat.scaleray.network.LaserBeamPayload
+import net.diavicecat.scaleray.network.PowerCellActionPayload
 import net.diavicecat.scaleray.network.ScaleRayPayload
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.Entity
-import net.minecraft.world.item.CreativeModeTabs
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.component.ItemContainerContents
 import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.neoforge.network.PacketDistributor
 
+import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.config.ModConfig
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
+import net.neoforged.fml.loading.FMLEnvironment
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 import net.neoforged.neoforge.common.NeoForge
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent
 import net.neoforged.neoforge.event.server.ServerStartingEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.network.handling.IPayloadContext
@@ -40,6 +54,11 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         modEventBus.addListener<FMLCommonSetupEvent?>(Consumer { event: FMLCommonSetupEvent? -> this.commonSetup(event) })
         modEventBus.addListener<RegisterPayloadHandlersEvent> { event ->
             val registrar = event.registrar(MOD_ID)
+            registrar.playToServer(
+                PowerCellActionPayload.TYPE,
+                PowerCellActionPayload.STREAM_CODEC,
+                ::handlePowerCellAction
+            )
             registrar.playToServer(
                 ScaleRayPayload.TYPE,
                 ScaleRayPayload.STREAM_CODEC,
@@ -59,13 +78,18 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
 
         ModItems.register(modEventBus)
         ModBlocks.register(modEventBus)
+        ModBlockEntities.register(modEventBus)
+        ModDataComponents.register(modEventBus)
+        ModMenuTypes.register(modEventBus)
+        ModCreativeTab.register(modEventBus)
 
-        // Register the item to a creative tab
-        modEventBus.addListener<BuildCreativeModeTabContentsEvent?>(Consumer { event: BuildCreativeModeTabContentsEvent? ->
-            this.addCreative(
-                event!!
-            )
-        })
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            modEventBus.addListener<RegisterMenuScreensEvent> { event ->
+                event.register(ModMenuTypes.SCALE_RAY_MENU.get(), ::ScaleRayMenuScreen)
+                event.register(ModMenuTypes.CHARGING_STATION_MENU.get(), ::ChargingStationMenuScreen)
+            }
+        }
+
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC)
@@ -84,6 +108,8 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
                 ScaleRayPayload.Target.OBSERVED -> getLookedAtEntity(player, 10.0) ?: return@enqueueWork
                 ScaleRayPayload.Target.SELF     -> player
             }
+
+            if (!consumeCharge(player.mainHandItem)) return@enqueueWork
 
             applyScale(target, payload.mode, payload.power, server)
 
@@ -171,14 +197,46 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         level.playSound(null, player.x, player.y, player.z, SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.8f)
     }
 
-    // Add the example block item to the building blocks tab
-    private fun addCreative(event: BuildCreativeModeTabContentsEvent) {
-        if (event.getTabKey() === CreativeModeTabs.INGREDIENTS) {
-            event.accept(ModItems.SCALETECHCASING)
-            event.accept(ModBlocks.SCALINGCORE)
-        }
-        if (event.getTabKey() === CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(ModItems.SCALERAY)
+    private fun consumeCharge(rayStack: ItemStack): Boolean {
+        if (rayStack.item !is ScaleRayItem) return false
+        val cellContents = rayStack.get(ModDataComponents.INSERTED_CELL.get()) ?: return false
+        val cell = cellContents.getStackInSlot(0)
+        if (cell.isEmpty) return false
+        val charges = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
+        if (charges <= 0) return false
+        val newCell = cell.copy()
+        newCell.set(ModDataComponents.POWER_CHARGES.get(), charges - 1)
+        rayStack.set(ModDataComponents.INSERTED_CELL.get(), ItemContainerContents.fromItems(listOf(newCell)))
+        return true
+    }
+
+    private fun handlePowerCellAction(payload: PowerCellActionPayload, context: IPayloadContext) {
+        context.enqueueWork {
+            val player = context.player() as? ServerPlayer ?: return@enqueueWork
+            val rayStack = player.mainHandItem
+            if (rayStack.item !is ScaleRayItem) return@enqueueWork
+
+            when (payload.action) {
+                PowerCellActionPayload.Action.INSERT -> {
+                    val offhand = player.offhandItem
+                    if (offhand.item !is PowerCellItem) return@enqueueWork
+                    if (rayStack.has(ModDataComponents.INSERTED_CELL.get())) return@enqueueWork
+                    rayStack.set(ModDataComponents.INSERTED_CELL.get(), ItemContainerContents.fromItems(listOf(offhand.copy())))
+                    player.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY)
+                }
+                PowerCellActionPayload.Action.EXTRACT -> {
+                    val cellContents = rayStack.get(ModDataComponents.INSERTED_CELL.get()) ?: return@enqueueWork
+                    val cell = cellContents.getStackInSlot(0)
+                    if (cell.isEmpty) return@enqueueWork
+                    rayStack.remove(ModDataComponents.INSERTED_CELL.get())
+                    if (player.offhandItem.isEmpty) {
+                        player.setItemInHand(InteractionHand.OFF_HAND, cell)
+                    } else {
+                        player.inventory.add(cell)
+                    }
+                }
+            }
+            player.inventoryMenu.broadcastChanges()
         }
     }
 

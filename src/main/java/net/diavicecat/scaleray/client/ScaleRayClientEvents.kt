@@ -19,18 +19,14 @@ object ScaleRayClientEvents {
     fun onRightClick(event: PlayerInteractEvent.RightClickItem) {
         if (event.itemStack.item != ModItems.SCALERAY.get()) return
 
-        event.isCanceled = true
-
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return
 
-        // Crouch + right-click → open settings GUI
-        if (player.isShiftKeyDown) {
-            mc.setScreen(ScaleRayScreen())
-            return
-        }
+        // Sneak + right-click → let server handle via ScaleRayItem.use() (opens inventory GUI)
+        if (player.isShiftKeyDown) return
 
-        // Normal right-click → fire the ray with current settings
+        // Normal right-click → cancel default and fire the ray
+        event.isCanceled = true
         val forward = player.lookAngle
         val up = Vec3(0.0, 1.0, 0.0)
         val right = forward.cross(up).normalize()
