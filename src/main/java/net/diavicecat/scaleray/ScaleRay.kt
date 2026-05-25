@@ -3,10 +3,19 @@ package net.diavicecat.scaleray
 import com.mojang.logging.LogUtils
 import net.diavicecat.scaleray.block.ModBlocks
 import net.diavicecat.scaleray.item.ModItems
+import net.diavicecat.scaleray.network.LaserBeamPayload
 import net.diavicecat.scaleray.network.ScaleRayPayload
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.CreativeModeTabs
+import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.IEventBus
+import net.neoforged.neoforge.network.PacketDistributor
+
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.EventBusSubscriber
@@ -36,6 +45,11 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
                 ScaleRayPayload.STREAM_CODEC,
                 ::handleScaleRayPayload
             )
+            registrar.playToClient(LaserBeamPayload.TYPE, LaserBeamPayload.STREAM_CODEC) { payload, context ->
+                context.enqueueWork {
+                    net.diavicecat.scaleray.client.ClientBeamRenderer.addBeam(payload.start, payload.end)
+                }
+            }
         }
 
         // Register ourselves for server and other game events we are interested in.
@@ -63,15 +77,98 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
     private fun handleScaleRayPayload(payload: ScaleRayPayload, context: IPayloadContext) {
         context.enqueueWork {
             val player = context.player() as? ServerPlayer ?: return@enqueueWork
+            val level  = player.level() as ServerLevel
             val server = player.server
-            val source = player.createCommandSourceStack()
-            val command = when (payload.action) {
-                ScaleRayPayload.Action.SHRINK -> "scale add pehkui:base -0.1 @s"
-                ScaleRayPayload.Action.GROW -> "scale add pehkui:base 0.1 @s"
-                ScaleRayPayload.Action.RESET -> "scale set pehkui:base 1 @s"
+
+            val target: Entity = when (payload.target) {
+                ScaleRayPayload.Target.OBSERVED -> getLookedAtEntity(player, 10.0) ?: return@enqueueWork
+                ScaleRayPayload.Target.SELF     -> player
             }
-            server.commands.performPrefixedCommand(source, command)
+
+            applyScale(target, payload.mode, payload.power, server)
+
+            // Only show the laser beam when targeting an observed entity.
+            if (payload.target == ScaleRayPayload.Target.OBSERVED) {
+                spawnLaserEffects(player, payload.beamStart, payload.beamEnd, level)
+            } else {
+                level.playSound(null, player.x, player.y, player.z,
+                    SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.8f)
+            }
         }
+    }
+
+    private fun applyScale(target: Entity, mode: ScaleRayPayload.Mode, power: Float, server: MinecraftServer) {
+        if (tryPehkuiApi(target, mode, power)) {
+            LOGGER.debug("ScaleRay: applied scale via Pehkui API")
+            return
+        }
+        LOGGER.debug("ScaleRay: Pehkui API unavailable, falling back to command")
+        val source = server.createCommandSourceStack()
+            .withPermission(4)
+            .withEntity(target)
+            .withPosition(target.position())
+            .withLevel(target.level() as ServerLevel)
+        val command = when (mode) {
+            ScaleRayPayload.Mode.SHRINK -> "scale add pehkui:base -$power @s"
+            ScaleRayPayload.Mode.GROW   -> "scale add pehkui:base $power @s"
+            ScaleRayPayload.Mode.RESET  -> "scale set pehkui:base 1 @s"
+        }
+        server.commands.performPrefixedCommand(source, command)
+    }
+
+    private fun tryPehkuiApi(target: Entity, mode: ScaleRayPayload.Mode, power: Float): Boolean {
+        return try {
+            val scaleTypesClass = Class.forName("virtuoel.pehkui.api.ScaleTypes")
+            val baseScaleType   = scaleTypesClass.getField("BASE").get(null)
+            val getScaleData    = baseScaleType.javaClass.getMethod("getScaleData", Entity::class.java)
+            val scaleData       = getScaleData.invoke(baseScaleType, target)
+            val currentScale    = scaleData.javaClass.getMethod("getScale").invoke(scaleData) as Float
+            val newScale = when (mode) {
+                ScaleRayPayload.Mode.SHRINK -> (currentScale - power).coerceAtLeast(0.1f)
+                ScaleRayPayload.Mode.GROW   -> currentScale + power
+                ScaleRayPayload.Mode.RESET  -> 1.0f
+            }
+            scaleData.javaClass.getMethod("setTargetScale", Float::class.javaPrimitiveType).invoke(scaleData, newScale)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun getLookedAtEntity(player: ServerPlayer, range: Double): Entity? {
+        val eyePos: Vec3 = player.getEyePosition()
+        val lookVec: Vec3 = player.lookAngle
+        val endPos: Vec3 = eyePos.add(lookVec.scale(range))
+        val searchBox = player.boundingBox.expandTowards(lookVec.scale(range)).inflate(1.0)
+
+        var closestEntity: Entity? = null
+        var closestDistSq = range * range
+
+        for (entity in player.level().getEntities(player, searchBox)) {
+            if (entity.isSpectator) continue
+            val hit = entity.boundingBox.inflate(entity.pickRadius.toDouble()).clip(eyePos, endPos)
+            if (hit.isPresent) {
+                val distSq = eyePos.distanceToSqr(hit.get())
+                if (distSq < closestDistSq) {
+                    closestDistSq = distSq
+                    closestEntity = entity
+                }
+            }
+        }
+
+        return closestEntity
+    }
+
+    private fun spawnLaserEffects(player: ServerPlayer, beamStart: Vec3, beamEnd: Vec3, level: ServerLevel) {
+        val beamPayload = LaserBeamPayload(beamStart, beamEnd)
+
+        for (nearby in level.players()) {
+            if (nearby.position().distanceTo(player.position()) <= 64.0) {
+                PacketDistributor.sendToPlayer(nearby as ServerPlayer, beamPayload)
+            }
+        }
+
+        level.playSound(null, player.x, player.y, player.z, SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.8f)
     }
 
     // Add the example block item to the building blocks tab

@@ -5,9 +5,21 @@ import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.phys.Vec3
 
-data class ScaleRayPayload(val action: Action) : CustomPacketPayload {
-    enum class Action { SHRINK, GROW, RESET }
+data class ScaleRayPayload(
+    val mode: Mode,
+    val target: Target,
+    val power: Float,
+    val beamStartX: Double, val beamStartY: Double, val beamStartZ: Double,
+    val beamEndX: Double,   val beamEndY: Double,   val beamEndZ: Double
+) : CustomPacketPayload {
+
+    enum class Mode   { SHRINK, GROW, RESET }
+    enum class Target { OBSERVED, SELF }
+
+    val beamStart get() = Vec3(beamStartX, beamStartY, beamStartZ)
+    val beamEnd   get() = Vec3(beamEndX,   beamEndY,   beamEndZ)
 
     override fun type(): CustomPacketPayload.Type<ScaleRayPayload> = TYPE
 
@@ -16,8 +28,20 @@ data class ScaleRayPayload(val action: Action) : CustomPacketPayload {
             ResourceLocation.fromNamespaceAndPath(ScaleRay.MOD_ID, "scale_action")
         )
         val STREAM_CODEC: StreamCodec<FriendlyByteBuf, ScaleRayPayload> = StreamCodec.of(
-            { buf, payload -> buf.writeEnum(payload.action) },
-            { buf -> ScaleRayPayload(buf.readEnum(Action::class.java)) }
+            { buf, p ->
+                buf.writeEnum(p.mode)
+                buf.writeEnum(p.target)
+                buf.writeFloat(p.power)
+                buf.writeDouble(p.beamStartX); buf.writeDouble(p.beamStartY); buf.writeDouble(p.beamStartZ)
+                buf.writeDouble(p.beamEndX);   buf.writeDouble(p.beamEndY);   buf.writeDouble(p.beamEndZ)
+            },
+            { buf -> ScaleRayPayload(
+                buf.readEnum(Mode::class.java),
+                buf.readEnum(Target::class.java),
+                buf.readFloat(),
+                buf.readDouble(), buf.readDouble(), buf.readDouble(),
+                buf.readDouble(), buf.readDouble(), buf.readDouble()
+            )}
         )
     }
 }
