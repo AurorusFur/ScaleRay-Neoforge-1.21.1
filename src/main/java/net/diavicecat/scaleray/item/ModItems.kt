@@ -1,6 +1,7 @@
 package net.diavicecat.scaleray.item
 
 import net.diavicecat.scaleray.ScaleRay
+import net.diavicecat.scaleray.item.custom.PowerCellItem
 import net.diavicecat.scaleray.item.custom.ScaleRayItem
 import net.minecraft.world.item.Item
 import net.neoforged.bus.api.IEventBus
@@ -16,12 +17,40 @@ object ModItems {
         "scaleray",
         Supplier { ScaleRayItem(Item.Properties()) })
 
-
     @JvmField
     val SCALETECHCASING: DeferredItem<Item?> = ITEMS.register<Item?>(
         "scaletechcasing",
         Supplier { Item(Item.Properties()) })
 
+    @JvmField
+    val POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "powercell",
+        Supplier { PowerCellItem(Item.Properties().component(net.diavicecat.scaleray.component.ModDataComponents.POWER_CHARGES.get(), 0), 10) })
+
+    @JvmField
+    val UPGRADED_POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "upgraded_powercell",
+        Supplier { PowerCellItem(Item.Properties().component(net.diavicecat.scaleray.component.ModDataComponents.POWER_CHARGES.get(), 0), 25) })
+
+    @JvmField
+    val ADVANCED_POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "advanced_powercell",
+        Supplier { PowerCellItem(Item.Properties().component(net.diavicecat.scaleray.component.ModDataComponents.POWER_CHARGES.get(), 0), 50) })
+
+    @JvmField
+    val SUPER_POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "super_powercell",
+        Supplier { PowerCellItem(Item.Properties().component(net.diavicecat.scaleray.component.ModDataComponents.POWER_CHARGES.get(), 0), 100) })
+
+    @JvmField
+    val ULTIMATE_POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "ultimate_powercell",
+        Supplier { PowerCellItem(Item.Properties().component(net.diavicecat.scaleray.component.ModDataComponents.POWER_CHARGES.get(), 0), 200) })
+
+    @JvmField
+    val CREATIVE_POWERCELL: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "creative_powercell",
+        Supplier { PowerCellItem(Item.Properties(), Int.MAX_VALUE) })
 
     @JvmStatic
     fun register(eventBus: IEventBus) {

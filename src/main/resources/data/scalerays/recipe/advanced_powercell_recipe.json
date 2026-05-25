@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "DED",
+        "EUE",
+        "DED"
+    ],
+    "key": {
+        "D": { "item": "minecraft:diamond" },
+        "E": { "item": "minecraft:emerald" },
+        "U": { "item": "scalerays:upgraded_powercell" }
+    },
+    "result": {
+        "id": "scalerays:advanced_powercell",
+        "count": 1
+    }
+}

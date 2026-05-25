@@ -1,5 +1,13 @@
-{
+﻿{
+  "itemGroup.scalerays.main": "ScaleRay",
   "item.scalerays.scaleray": "ScaleRay",
   "item.scalerays.scaletechcasing": "ScaleTech Casing",
-  "block.scalerays.scalingcore": "Scaling Core"
+  "block.scalerays.scalingcore": "Scaling Core",
+  "item.scalerays.powercell": "Basic Power Cell",
+  "item.scalerays.upgraded_powercell": "Upgraded Power Cell",
+  "item.scalerays.advanced_powercell": "Advanced Power Cell",
+  "item.scalerays.super_powercell": "Super Power Cell",
+  "item.scalerays.ultimate_powercell": "Ultimate Power Cell",
+  "item.scalerays.creative_powercell": "Creative Power Cell",
+  "block.scalerays.chargingstation": "Charging Station"
 }

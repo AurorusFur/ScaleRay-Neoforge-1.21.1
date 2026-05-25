@@ -15,6 +15,16 @@ import java.util.function.Supplier
 object ModBlocks {
     val BLOCKS: DeferredRegister.Blocks = DeferredRegister.createBlocks(ScaleRay.MOD_ID)
     @JvmField
+    val CHARGINGSTATION: DeferredBlock<Block?> = registerBlock<Block?>(
+        "chargingstation",
+        Supplier {
+            ChargingStationBlock(
+                BlockBehaviour.Properties.of()
+                    .strength(2.5f, 6.0f).sound(SoundType.METAL)
+            )
+        })
+
+    @JvmField
     val SCALINGCORE: DeferredBlock<Block?> = registerBlock<Block?>(
         "scalingcore",
         Supplier {
