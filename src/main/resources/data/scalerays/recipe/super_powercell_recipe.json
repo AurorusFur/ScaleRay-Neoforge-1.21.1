@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "ENE",
+        "NAE",
+        "ENE"
+    ],
+    "key": {
+        "E": { "item": "minecraft:emerald" },
+        "N": { "item": "minecraft:netherite_ingot" },
+        "A": { "item": "scalerays:advanced_powercell" }
+    },
+    "result": {
+        "id": "scalerays:super_powercell",
+        "count": 1
+    }
+}

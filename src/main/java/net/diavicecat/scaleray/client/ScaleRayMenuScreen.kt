@@ -12,32 +12,31 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.player.Inventory
-import net.minecraft.world.item.ItemStack
 
 class ScaleRayMenuScreen(menu: ScaleRayMenu, inv: Inventory, title: Component) :
     AbstractContainerScreen<ScaleRayMenu>(menu, inv, title) {
 
-    private val minPower = 0.05f
-    private val maxPower = 2.0f
+    private val minPower = 0.01f
+    private val maxPower = 0.3f
 
-    // Controls panel height and sidebar geometry — must match constants in ScaleRayMenu
-    private val ctrlH = 156
-    private val sideW = 32
-    private val sideH = 52
-    private val sideRelY = (ctrlH - sideH) / 2 - 20  // = 32, shifted up from center
+    // Controls panel and sidebar geometry (1x GUI pixels; textures are 2x)
+    private val ctrlH    = 145  // scale_ray_inventory.png: 290/2
+    private val sideW    = 26   // upgrade_slot_inventory.png: 52/2
+    private val sideH    = 26
+    private val sideRelY = (ctrlH - sideH) / 2  // = 59, centers sidebar in controls panel
 
     init {
-        imageWidth = 220
-        imageHeight = 258
+        imageWidth  = 178
+        imageHeight = 244  // ctrlH(145) + gap(3) + invH(96)
     }
 
     override fun init() {
         super.init()
         inventoryLabelX = ScaleRayMenu.INV_X
         inventoryLabelY = ScaleRayMenu.INV_Y - 12
-        val lx = leftPos
-        val ty = topPos
-        val btnW = imageWidth - 16  // full-width buttons
+        val lx   = leftPos
+        val ty   = topPos
+        val btnW = imageWidth - 16
 
         addRenderableWidget(Button.builder(Component.literal(modeLabel(ScaleRayConfig.mode))) {
             ScaleRayConfig.mode = nextMode(ScaleRayConfig.mode)
@@ -50,7 +49,7 @@ class ScaleRayMenuScreen(menu: ScaleRayMenu, inv: Inventory, title: Component) :
         }.bounds(lx + 8, ty + 80, btnW, 20).build())
 
         val sliderInitial = ((ScaleRayConfig.power - minPower) / (maxPower - minPower)).toDouble()
-        addRenderableWidget(object : AbstractSliderButton(lx + 8, ty + 124, btnW, 20, Component.empty(), sliderInitial) {
+        addRenderableWidget(object : AbstractSliderButton(lx + 8, ty + 112, btnW, 20, Component.empty(), sliderInitial) {
             init { updateMessage() }
             override fun updateMessage() {
                 val p = (value * (maxPower - minPower) + minPower).toFloat()
@@ -65,91 +64,50 @@ class ScaleRayMenuScreen(menu: ScaleRayMenu, inv: Inventory, title: Component) :
     override fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
         val lx = leftPos
         val ty = topPos
+        val ps = guiGraphics.pose()
 
-        // ── Controls panel ─────────────────────────────────────────────────
-        guiGraphics.fill(lx - 1,             ty - 1,          lx + imageWidth + 1, ty + ctrlH + 1,  0xFF373737.toInt())
-        guiGraphics.fill(lx,                  ty,              lx + imageWidth,      ty + ctrlH,      0xFFC6C6C6.toInt())
-        guiGraphics.fill(lx,                  ty,              lx + imageWidth - 1,  ty + 1,          0xFFFFFFFF.toInt())
-        guiGraphics.fill(lx,                  ty,              lx + 1,               ty + ctrlH - 1, 0xFFFFFFFF.toInt())
-        guiGraphics.fill(lx + 1,              ty + ctrlH - 1, lx + imageWidth,      ty + ctrlH,      0xFF555555.toInt())
-        guiGraphics.fill(lx + imageWidth - 1, ty + 1,          lx + imageWidth,      ty + ctrlH,      0xFF555555.toInt())
+        // ── Controls panel background (355×290 at 2x → 178×145 at 1x) ──────────
+        ps.pushPose()
+        ps.translate(lx.toFloat(), ty.toFloat(), 0f)
+        ps.scale(0.5f, 0.5f, 1f)
+        guiGraphics.blit(CONTROLS_BG, 0, 0, 0f, 0f, 355, 290, 355, 290)
+        ps.popPose()
 
-        // Title (white — renderLabels is overridden to skip redrawing it)
-        guiGraphics.drawCenteredString(font, title, lx + imageWidth / 2, ty + 8, 0xFFFFFF)
+        // Labels (rendered at 1x after the panel background)
+        guiGraphics.drawString(font, title,    lx + 8, ty + 8,  0x404040, false)
         guiGraphics.drawString(font, "Mode:",   lx + 8, ty + 24, 0x404040, false)
         guiGraphics.drawString(font, "Target:", lx + 8, ty + 68, 0x404040, false)
 
-        // ── Cell sidebar (docked to right of controls panel, right corners rounded) ──
+        // ── Upgrade/battery slot sidebar (52×52 at 2x → 26×26 at 1x) ────────────
         val sideX = lx + imageWidth
         val sideY = ty + sideRelY
-        // Fill: 4-step staircase at right corners
-        guiGraphics.fill(sideX,         sideY,       sideX+sideW-2, sideY+sideH,   0xFFC6C6C6.toInt()) // main body
-        guiGraphics.fill(sideX+sideW-2, sideY+1,     sideX+sideW-1, sideY+sideH-1, 0xFFC6C6C6.toInt()) // col sw-2
-        guiGraphics.fill(sideX+sideW-1, sideY+2,     sideX+sideW,   sideY+sideH-2, 0xFFC6C6C6.toInt()) // col sw-1
-        // Border: 4-step staircase corner
-        guiGraphics.fill(sideX,         sideY-1,     sideX+sideW-3, sideY,         0xFF373737.toInt()) // top border
-        guiGraphics.fill(sideX+sideW,   sideY+3,     sideX+sideW+1, sideY+sideH-3, 0xFF373737.toInt()) // right border
-        guiGraphics.fill(sideX,         sideY+sideH, sideX+sideW-3, sideY+sideH+1, 0xFF373737.toInt()) // bottom border
-        // Bevels
-        guiGraphics.fill(sideX,         sideY,       sideX+sideW-2, sideY+1,       0xFFFFFFFF.toInt()) // top bevel
-        guiGraphics.fill(sideX+sideW-1, sideY+2,     sideX+sideW,   sideY+sideH-2, 0xFF555555.toInt()) // right bevel
-        guiGraphics.fill(sideX+1,       sideY+sideH-1, sideX+sideW-2, sideY+sideH, 0xFF555555.toInt()) // bottom bevel
+        ps.pushPose()
+        ps.translate(sideX.toFloat(), sideY.toFloat(), 0f)
+        ps.scale(0.5f, 0.5f, 1f)
+        guiGraphics.blit(UPGRADE_SLOT_BG, 0, 0, 0f, 0f, 52, 52, 52, 52)
+        ps.popPose()
 
-        // Rounded slot background (slot bg is 1px outside item position)
-        val slotBgX = lx + ScaleRayMenu.CELL_SLOT_X - 1  // = sideX + 6
-        val slotBgY = ty + ScaleRayMenu.CELL_SLOT_Y - 1  // = sideY + 13
-        drawRoundSlot(guiGraphics, slotBgX, slotBgY)
-
-        // Outline icon when cell slot is empty
+        // Battery icon when slot is empty
         if (menu.cellSlot.item.isEmpty) {
             guiGraphics.blit(POWERCELL_SLOT_ICON,
                 lx + ScaleRayMenu.CELL_SLOT_X, ty + ScaleRayMenu.CELL_SLOT_Y,
                 0f, 0f, 16, 16, 16, 16)
         }
 
-        // Charge counter below slot
-        val cell = menu.cellSlot.item
-        if (!cell.isEmpty) {
-            val charges = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
-            val chargeColor = if (charges > 0) 0x404040 else 0xFF5555
-            guiGraphics.drawCenteredString(font, "$charges/${PowerCellItem.MAX_CHARGES}",
-                sideX + sideW / 2, sideY + sideH - 14, chargeColor)
-        }
-
-        // ── Inventory panel ────────────────────────────────────────────────
+        // ── Inventory panel background (355×192 at 2x → 178×96 at 1x) ───────────
         val invPanelY = ty + ctrlH + 3
-        val invPanelH = imageHeight - ctrlH - 3
-        guiGraphics.fill(lx - 1,             invPanelY - 1,            lx + imageWidth + 1, invPanelY + invPanelH + 1, 0xFF373737.toInt())
-        guiGraphics.fill(lx,                  invPanelY,                lx + imageWidth,      invPanelY + invPanelH,     0xFFC6C6C6.toInt())
-        guiGraphics.fill(lx,                  invPanelY,                lx + imageWidth - 1,  invPanelY + 1,             0xFFFFFFFF.toInt())
-        guiGraphics.fill(lx,                  invPanelY,                lx + 1,               invPanelY + invPanelH - 1, 0xFFFFFFFF.toInt())
-        guiGraphics.fill(lx + 1,              invPanelY + invPanelH - 1,lx + imageWidth,      invPanelY + invPanelH,     0xFF555555.toInt())
-        guiGraphics.fill(lx + imageWidth - 1, invPanelY + 1,            lx + imageWidth,      invPanelY + invPanelH,     0xFF555555.toInt())
-
-        // ── Player inventory slots — blit vanilla inventory.png for native visuals ──
-        // inventory.png is 256×256; player inventory rows start at UV(7,83), hotbar at UV(7,141)
-        // blitting 162×76 captures 3 rows (54px) + 4px gap + hotbar (18px)
-        guiGraphics.blit(INVENTORY_BG, lx + ScaleRayMenu.INV_X - 1, ty + ScaleRayMenu.INV_Y - 1, 7, 83, 162, 76)
-    }
-
-    private fun drawRoundSlot(guiGraphics: GuiGraphics, x: Int, y: Int) {
-        val dark  = 0xFF373737.toInt()
-        val inner = 0xFF8B8B8B.toInt()
-        guiGraphics.fill(x + 1, y,      x + 17, y + 1,  dark)
-        guiGraphics.fill(x,     y + 1,  x + 1,  y + 17, dark)
-        guiGraphics.fill(x + 1, y + 17, x + 17, y + 18, dark)
-        guiGraphics.fill(x + 17,y + 1,  x + 18, y + 17, dark)
-        guiGraphics.fill(x + 1, y + 1,  x + 17, y + 17, inner)
+        ps.pushPose()
+        ps.translate(lx.toFloat(), invPanelY.toFloat(), 0f)
+        ps.scale(0.5f, 0.5f, 1f)
+        guiGraphics.blit(INVENTORY_BG, 0, 0, 0f, 0f, 355, 192, 355, 192)
+        ps.popPose()
     }
 
     override fun renderLabels(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
-        // Title is drawn white in renderBg; only draw the inventory section label here
         guiGraphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false)
     }
 
-    override fun renderBackground(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        // No-op — prevent double blur; super.renderBackground() called once in render()
-    }
+    override fun renderBackground(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {}
 
     override fun mouseDragged(mouseX: Double, mouseY: Double, button: Int, dragX: Double, dragY: Double): Boolean {
         val f = getFocused()
@@ -193,7 +151,9 @@ class ScaleRayMenuScreen(menu: ScaleRayMenu, inv: Inventory, title: Component) :
     }
 
     companion object {
-        private val INVENTORY_BG = ResourceLocation.withDefaultNamespace("textures/gui/container/inventory.png")
+        private val CONTROLS_BG      = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/scale_ray_inventory.png")
+        private val UPGRADE_SLOT_BG  = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/upgrade_slot_inventory.png")
+        private val INVENTORY_BG     = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/player_inventory.png")
         private val POWERCELL_SLOT_ICON = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/powercell_slot.png")
     }
 }

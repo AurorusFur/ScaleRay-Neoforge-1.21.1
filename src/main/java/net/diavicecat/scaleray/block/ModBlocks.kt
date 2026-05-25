@@ -20,7 +20,7 @@ object ModBlocks {
         Supplier {
             ChargingStationBlock(
                 BlockBehaviour.Properties.of()
-                    .strength(3.5f).sound(SoundType.METAL).requiresCorrectToolForDrops()
+                    .strength(2.5f, 6.0f).sound(SoundType.METAL)
             )
         })
 

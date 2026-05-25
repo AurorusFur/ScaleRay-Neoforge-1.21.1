@@ -21,6 +21,11 @@ object ModCreativeTab {
             .displayItems { _, output ->
                 output.accept(ModItems.SCALERAY.get())
                 output.accept(ModItems.POWERCELL.get())
+                output.accept(ModItems.UPGRADED_POWERCELL.get())
+                output.accept(ModItems.ADVANCED_POWERCELL.get())
+                output.accept(ModItems.SUPER_POWERCELL.get())
+                output.accept(ModItems.ULTIMATE_POWERCELL.get())
+                output.accept(ModItems.CREATIVE_POWERCELL.get())
                 output.accept(ModItems.SCALETECHCASING.get())
                 output.accept(ModBlocks.CHARGINGSTATION.get())
                 output.accept(ModBlocks.SCALINGCORE.get())

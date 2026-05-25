@@ -76,11 +76,11 @@ class ScaleRayMenu(containerId: Int, private val playerInv: Inventory, val raySt
         player.mainHandItem === rayStack || player.offhandItem === rayStack
 
     companion object {
-        // Cell slot is in the sidebar docked to the right of the controls panel.
-        // Sidebar: x=220, width=32, sideRelY=32 → slot at (sideX+7, sideY+14) → (227, 46)
-        const val CELL_SLOT_X = 227
-        const val CELL_SLOT_Y = 46
-        const val INV_X = 29
-        const val INV_Y = 175
+        // Sidebar (26×26 at 1x) docked right of controls panel (imageWidth=178).
+        // sideRelY = (ctrlH-sideH)/2 = (145-26)/2 = 59. Slot inner at (+5,+5) within sidebar.
+        const val CELL_SLOT_X = 183  // 178 + 5
+        const val CELL_SLOT_Y = 64   // 59 + 5
+        const val INV_X = 8
+        const val INV_Y = 164        // ctrlH(145) + gap(3) + first-slot-offset-in-texture(16)
     }
 }

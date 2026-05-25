@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "GDG",
+        "DPD",
+        "GDG"
+    ],
+    "key": {
+        "G": { "item": "minecraft:gold_ingot" },
+        "D": { "item": "minecraft:diamond" },
+        "P": { "item": "scalerays:powercell" }
+    },
+    "result": {
+        "id": "scalerays:upgraded_powercell",
+        "count": 1
+    }
+}

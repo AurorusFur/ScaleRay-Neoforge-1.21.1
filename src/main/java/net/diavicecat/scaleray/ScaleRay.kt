@@ -109,6 +109,9 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
                 ScaleRayPayload.Target.SELF     -> player
             }
 
+            if (payload.mode == ScaleRayPayload.Mode.SHRINK &&
+                !canShrink(target, payload.power)) return@enqueueWork
+
             if (!consumeCharge(player.mainHandItem)) return@enqueueWork
 
             applyScale(target, payload.mode, payload.power, server)
@@ -142,6 +145,19 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         server.commands.performPrefixedCommand(source, command)
     }
 
+    private fun canShrink(target: Entity, power: Float): Boolean {
+        return try {
+            val scaleTypesClass = Class.forName("virtuoel.pehkui.api.ScaleTypes")
+            val baseScaleType   = scaleTypesClass.getField("BASE").get(null)
+            val getScaleData    = baseScaleType.javaClass.getMethod("getScaleData", Entity::class.java)
+            val scaleData       = getScaleData.invoke(baseScaleType, target)
+            val currentScale    = scaleData.javaClass.getMethod("getScale").invoke(scaleData) as Float
+            (currentScale - power) >= 0.03f
+        } catch (_: Exception) {
+            true  // Pehkui unavailable — allow, command fallback has no floor
+        }
+    }
+
     private fun tryPehkuiApi(target: Entity, mode: ScaleRayPayload.Mode, power: Float): Boolean {
         return try {
             val scaleTypesClass = Class.forName("virtuoel.pehkui.api.ScaleTypes")
@@ -150,7 +166,7 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
             val scaleData       = getScaleData.invoke(baseScaleType, target)
             val currentScale    = scaleData.javaClass.getMethod("getScale").invoke(scaleData) as Float
             val newScale = when (mode) {
-                ScaleRayPayload.Mode.SHRINK -> (currentScale - power).coerceAtLeast(0.1f)
+                ScaleRayPayload.Mode.SHRINK -> currentScale - power
                 ScaleRayPayload.Mode.GROW   -> currentScale + power
                 ScaleRayPayload.Mode.RESET  -> 1.0f
             }
@@ -202,6 +218,8 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         val cellContents = rayStack.get(ModDataComponents.INSERTED_CELL.get()) ?: return false
         val cell = cellContents.getStackInSlot(0)
         if (cell.isEmpty) return false
+        val cellItem = cell.item as? PowerCellItem ?: return false
+        if (cellItem.isCreative) return true
         val charges = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
         if (charges <= 0) return false
         val newCell = cell.copy()

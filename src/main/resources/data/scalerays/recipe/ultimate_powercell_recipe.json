@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "NNN",
+        "NSN",
+        "NNN"
+    ],
+    "key": {
+        "N": { "item": "minecraft:netherite_ingot" },
+        "S": { "item": "scalerays:super_powercell" }
+    },
+    "result": {
+        "id": "scalerays:ultimate_powercell",
+        "count": 1
+    }
+}

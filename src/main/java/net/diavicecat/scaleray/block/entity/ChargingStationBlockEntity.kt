@@ -62,10 +62,11 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             changed = true
         }
 
-        // Reset cycle when no charging can happen (empty slot or fully charged battery)
+        // Reset cycle when no charging can happen (empty slot, creative cell, or fully charged battery)
         val cellForCheck = container.getItem(0)
-        val batteryFull = cellForCheck.item is PowerCellItem &&
-            (cellForCheck.get(ModDataComponents.POWER_CHARGES.get()) ?: 0) >= PowerCellItem.MAX_CHARGES
+        val cellItemForCheck = cellForCheck.item as? PowerCellItem
+        val batteryFull = cellItemForCheck != null &&
+            (cellItemForCheck.isCreative || (cellForCheck.get(ModDataComponents.POWER_CHARGES.get()) ?: 0) >= cellItemForCheck.maxCharges)
         if (cellForCheck.isEmpty || batteryFull) {
             if (tickCounter != 0) { tickCounter = 0; changed = true }
         }
@@ -76,10 +77,11 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             tickCounter = 0
             if (powerStored > 0) {
                 val cell = container.getItem(0)
-                if (!cell.isEmpty && cell.item is PowerCellItem) {
+                val cellItem = cell.item as? PowerCellItem
+                if (!cell.isEmpty && cellItem != null && !cellItem.isCreative) {
                     val current = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
-                    if (current < PowerCellItem.MAX_CHARGES) {
-                        cell.set(ModDataComponents.POWER_CHARGES.get(), (current + 1).coerceAtMost(PowerCellItem.MAX_CHARGES))
+                    if (current < cellItem.maxCharges) {
+                        cell.set(ModDataComponents.POWER_CHARGES.get(), (current + 1).coerceAtMost(cellItem.maxCharges))
                         powerStored--
                         changed = true
                     }
