@@ -27,6 +27,7 @@ object ModCreativeTab {
                 output.accept(ModItems.ULTIMATE_POWERCELL.get())
                 output.accept(ModItems.CREATIVE_POWERCELL.get())
                 output.accept(ModItems.SCALETECHCASING.get())
+                output.accept(ModItems.SPEED_UPGRADE.get())
                 output.accept(ModBlocks.CHARGINGSTATION.get())
                 output.accept(ModBlocks.SCALINGCORE.get())
             }

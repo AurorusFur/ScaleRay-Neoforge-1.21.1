@@ -37,6 +37,8 @@ import net.neoforged.fml.config.ModConfig
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.capabilities.Capabilities
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.server.ServerStartingEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
@@ -75,6 +77,13 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this)
+
+        modEventBus.addListener<RegisterCapabilitiesEvent> { event ->
+            event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                ModBlockEntities.CHARGING_STATION.get()
+            ) { be, _ -> be.itemHandler }
+        }
 
         ModItems.register(modEventBus)
         ModBlocks.register(modEventBus)

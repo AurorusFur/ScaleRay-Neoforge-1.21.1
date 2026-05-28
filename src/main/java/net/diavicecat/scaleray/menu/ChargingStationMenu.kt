@@ -1,6 +1,7 @@
 package net.diavicecat.scaleray.menu
 
 import net.diavicecat.scaleray.block.entity.ChargingStationBlockEntity
+import net.diavicecat.scaleray.item.ModItems
 import net.diavicecat.scaleray.item.custom.PowerCellItem
 import net.minecraft.core.BlockPos
 import net.minecraft.network.FriendlyByteBuf
@@ -20,12 +21,13 @@ class ChargingStationMenu(
     private val playerInv: Inventory,
     private val stationContainer: Container,
     val blockPos: BlockPos,
-    private val containerData: ContainerData = SimpleContainerData(3)
+    private val containerData: ContainerData = SimpleContainerData(4)
 ) : AbstractContainerMenu(ModMenuTypes.CHARGING_STATION_MENU.get(), containerId) {
 
-    val powerStored: Int    get() = containerData.get(0)
-    val maxPower: Int       get() = containerData.get(1)
-    val chargeProgress: Int get() = containerData.get(2)
+    val powerStored: Int        get() = containerData.get(0)
+    val maxPower: Int           get() = containerData.get(1)
+    val chargeProgress: Int     get() = containerData.get(2)
+    val effectiveInterval: Int  get() = containerData.get(3).coerceAtLeast(1)
 
     init {
         addSlot(object : Slot(stationContainer, 0, CELL_SLOT_X, CELL_SLOT_Y) {
@@ -34,6 +36,17 @@ class ChargingStationMenu(
         })
         addSlot(object : Slot(stationContainer, 1, EMERALD_SLOT_X, EMERALD_SLOT_Y) {
             override fun mayPlace(stack: ItemStack) = stack.item == Items.EMERALD
+        })
+
+        for (i in 0..2) {
+            addSlot(object : Slot(stationContainer, 2 + i, UPGRADE_SLOT_X, UPGRADE_SLOT_Y_BASE + i * 26) {
+                override fun mayPlace(stack: ItemStack) = stack.item == ModItems.SPEED_UPGRADE.get()
+                override fun getMaxStackSize() = 1
+            })
+        }
+
+        addSlot(object : Slot(stationContainer, 5, OUTPUT_SLOT_X, OUTPUT_SLOT_Y) {
+            override fun mayPlace(stack: ItemStack) = false  // output only, no manual insertion
         })
 
         for (row in 0..2) {
@@ -55,10 +68,10 @@ class ChargingStationMenu(
         val original = stack.copy()
 
         when {
-            index == 0 -> if (!moveItemStackTo(stack, 2, slots.size, true)) return ItemStack.EMPTY
-            index == 1 -> if (!moveItemStackTo(stack, 2, slots.size, true)) return ItemStack.EMPTY
+            index < 6  -> if (!moveItemStackTo(stack, 6, slots.size, true)) return ItemStack.EMPTY
             stack.item is PowerCellItem -> if (!moveItemStackTo(stack, 0, 1, false)) return ItemStack.EMPTY
             stack.item == Items.EMERALD -> if (!moveItemStackTo(stack, 1, 2, false)) return ItemStack.EMPTY
+            stack.item == ModItems.SPEED_UPGRADE.get() -> if (!moveItemStackTo(stack, 2, 5, false)) return ItemStack.EMPTY
             else -> return ItemStack.EMPTY
         }
 
@@ -76,13 +89,18 @@ class ChargingStationMenu(
         const val CELL_SLOT_Y    = 30
         const val EMERALD_SLOT_X = 109
         const val EMERALD_SLOT_Y = 30
+        // Side-docked upgrade slots: imageWidth(178) + 5 inner offset; stacked at +26 each
+        const val UPGRADE_SLOT_X      = 183
+        const val UPGRADE_SLOT_Y_BASE = 5
+        const val OUTPUT_SLOT_X       = 81
+        const val OUTPUT_SLOT_Y       = 53
         const val INV_X          = 8
         const val INV_Y          = 97
 
         fun fromNetwork(containerId: Int, playerInv: Inventory, buf: FriendlyByteBuf): ChargingStationMenu {
             val pos = buf.readBlockPos()
             val entity = playerInv.player.level().getBlockEntity(pos) as? ChargingStationBlockEntity
-                ?: return ChargingStationMenu(containerId, playerInv, SimpleContainer(2), pos)
+                ?: return ChargingStationMenu(containerId, playerInv, SimpleContainer(6), pos)
             // Client uses default SimpleContainerData; server-side createMenu passes entity.containerData
             return ChargingStationMenu(containerId, playerInv, entity.container, pos)
         }

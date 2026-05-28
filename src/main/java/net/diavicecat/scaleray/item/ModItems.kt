@@ -52,6 +52,11 @@ object ModItems {
         "creative_powercell",
         Supplier { PowerCellItem(Item.Properties(), Int.MAX_VALUE) })
 
+    @JvmField
+    val SPEED_UPGRADE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "speed_upgrade",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
     @JvmStatic
     fun register(eventBus: IEventBus) {
         ITEMS.register(eventBus)

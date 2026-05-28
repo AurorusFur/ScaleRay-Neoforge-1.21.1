@@ -53,14 +53,32 @@ class ChargingStationMenuScreen(menu: ChargingStationMenu, inv: Inventory, title
         // Thunderbolt frame between slots (36×36, 2x coords: x=160, y=60)
         // Frame 0 is not rendered — inactive bolt is gray ≈ background, which bleeds through as outline
         val isActive = menu.powerStored > 0 && !menu.slots[0].item.isEmpty
-        val frame = if (isActive && CHARGE_INTERVAL > 0)
-            ((menu.chargeProgress.toLong() * 10 / CHARGE_INTERVAL).toInt() + 1).coerceIn(1, 10)
+        val frame = if (isActive)
+            ((menu.chargeProgress.toLong() * 10 / menu.effectiveInterval).toInt() + 1).coerceIn(1, 10)
         else 0
         if (frame > 0) {
             guiGraphics.blit(THUNDERBOLT_FRAMES[frame], 169, 62, 0f, 0f, 15, 24, 15, 24)
         }
 
         ps.popPose()
+
+        // ── Upgrade slot sidebar (3 stacked, each 52×52 at 2x → 26×26 at 1x) ─
+        val sideX = lx + imageWidth
+        for (i in 0..2) {
+            val sideY = ty + i * 26
+            ps.pushPose()
+            ps.translate(sideX.toFloat(), sideY.toFloat(), 0f)
+            ps.scale(0.5f, 0.5f, 1f)
+            guiGraphics.blit(UPGRADE_SLOT_BG, 0, 0, 0f, 0f, 52, 52, 52, 52)
+            ps.popPose()
+            if (menu.slots[2 + i].item.isEmpty) {
+                guiGraphics.blit(UPGRADE_SLOT_ICON,
+                    lx + ChargingStationMenu.UPGRADE_SLOT_X,
+                    ty + ChargingStationMenu.UPGRADE_SLOT_Y_BASE + i * 26,
+                    0f, 0f, 16, 16, 16, 16)
+            }
+        }
+
 
         // ── Inventory panel background ────────────────────────────────────────
         val invPanelY = ty + ctrlH + 3
@@ -82,6 +100,11 @@ class ChargingStationMenuScreen(menu: ChargingStationMenu, inv: Inventory, title
         if (menu.slots[1].item.isEmpty) {
             guiGraphics.blit(EMERALD_SLOT_ICON,
                 lx + ChargingStationMenu.EMERALD_SLOT_X, ty + ChargingStationMenu.EMERALD_SLOT_Y,
+                0f, 0f, 16, 16, 16, 16)
+        }
+        if (menu.slots[5].item.isEmpty) {
+            guiGraphics.blit(POWERCELL_SLOT_ICON,
+                lx + ChargingStationMenu.OUTPUT_SLOT_X, ty + ChargingStationMenu.OUTPUT_SLOT_Y,
                 0f, 0f, 16, 16, 16, 16)
         }
     }
@@ -107,13 +130,14 @@ class ChargingStationMenuScreen(menu: ChargingStationMenu, inv: Inventory, title
     override fun isPauseScreen() = false
 
     companion object {
-        private const val CHARGE_INTERVAL = 200
         private val STATION_BG           = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/charging_station_inventory.png")
         private val PLAYER_INVENTORY_BG  = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/player_inventory.png")
         private val EMPTY_POWER_BAR      = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/empty_power_bar.png")
         private val POWER_BAR_FILLER     = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/power_bar_filler.png")
         private val POWERCELL_SLOT_ICON  = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/powercell_slot.png")
         private val EMERALD_SLOT_ICON    = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/emerald_slot.png")
+        private val UPGRADE_SLOT_BG      = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/upgrade_slot_inventory.png")
+        private val UPGRADE_SLOT_ICON    = ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/upgrade_slot_icon.png")
         private val THUNDERBOLT_FRAMES   = Array(11) { i ->
             ResourceLocation.fromNamespaceAndPath("scalerays", "textures/gui/thunderbolt_icon_$i.png")
         }

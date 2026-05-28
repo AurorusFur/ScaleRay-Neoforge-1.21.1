@@ -22,25 +22,75 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.neoforged.neoforge.items.IItemHandler
 
 class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntity(ModBlockEntities.CHARGING_STATION.get(), pos, state), MenuProvider {
 
-    val container = SimpleContainer(2) // slot 0: powercell, slot 1: emerald input
+    val container = SimpleContainer(6) // slot 0: powercell input, slot 1: emerald input, slots 2-4: speed upgrades, slot 5: powercell output
     var powerStored = 0
     private var tickCounter = 0
+    private var effectiveInterval = CHARGE_INTERVAL
 
     val containerData = object : ContainerData {
         override fun get(index: Int) = when (index) {
             0 -> powerStored
             1 -> MAX_POWER
             2 -> tickCounter
+            3 -> effectiveInterval
             else -> 0
         }
         override fun set(index: Int, value: Int) {
             if (index == 0) powerStored = value
         }
-        override fun getCount() = 3
+        override fun getCount() = 4
+    }
+
+    // Virtual slot mapping for hoppers:
+    //   virtual 0 → container 0: battery input  (insert only)
+    //   virtual 1 → container 1: emerald input  (insert only)
+    //   virtual 2 → container 5: battery output (extract only)
+    val itemHandler: IItemHandler = object : IItemHandler {
+        private fun containerSlot(slot: Int) = if (slot == 2) 5 else slot
+        override fun getSlots() = 3
+        override fun getStackInSlot(slot: Int): ItemStack = container.getItem(containerSlot(slot))
+        override fun isItemValid(slot: Int, stack: ItemStack) = when (slot) {
+            0 -> stack.item is PowerCellItem
+            1 -> stack.item == Items.EMERALD
+            else -> false  // output slot: no insertion
+        }
+        override fun getSlotLimit(slot: Int) = if (slot == 0) 1 else 64
+        override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack {
+            if (slot == 2 || !isItemValid(slot, stack)) return stack
+            val cSlot = containerSlot(slot)
+            val limit = getSlotLimit(slot)
+            val existing = container.getItem(cSlot)
+            val space = if (existing.isEmpty) limit
+                        else if (ItemStack.isSameItemSameComponents(existing, stack)) limit - existing.count
+                        else 0
+            if (space <= 0) return stack
+            val add = minOf(stack.count, space)
+            if (!simulate) {
+                if (existing.isEmpty) container.setItem(cSlot, stack.copyWithCount(add))
+                else existing.grow(add)
+                setChanged()
+            }
+            val remainder = stack.count - add
+            return if (remainder <= 0) ItemStack.EMPTY else stack.copyWithCount(remainder)
+        }
+        override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack {
+            if (slot != 2) return ItemStack.EMPTY  // only extract from output slot
+            val stack = container.getItem(5)
+            if (stack.isEmpty) return ItemStack.EMPTY
+            val extract = minOf(amount, stack.count)
+            val out = stack.copyWithCount(extract)
+            if (!simulate) {
+                stack.shrink(extract)
+                if (stack.isEmpty) container.setItem(5, ItemStack.EMPTY)
+                setChanged()
+            }
+            return out
+        }
     }
 
     override fun getDisplayName(): Component = Component.translatable("block.scalerays.chargingstation")
@@ -50,6 +100,12 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
 
     fun serverTick() {
         var changed = false
+        val upgradeCount = (2..4).count { !container.getItem(it).isEmpty }
+        val newInterval = (CHARGE_INTERVAL - upgradeCount * 50).coerceAtLeast(10)
+        if (newInterval != effectiveInterval) {
+            tickCounter = (tickCounter.toLong() * newInterval / effectiveInterval).toInt()
+            effectiveInterval = newInterval
+        }
 
         // Convert all available emeralds to power immediately
         val emerald = container.getItem(1)
@@ -62,6 +118,18 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             changed = true
         }
 
+        // Auto-move fully charged battery from input slot to output slot
+        val cellIn = container.getItem(0)
+        val cellInItem = cellIn.item as? PowerCellItem
+        if (cellInItem != null && !cellInItem.isCreative) {
+            val charges = cellIn.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
+            if (charges >= cellInItem.maxCharges && container.getItem(5).isEmpty) {
+                container.setItem(5, cellIn.copy())
+                container.setItem(0, ItemStack.EMPTY)
+                changed = true
+            }
+        }
+
         // Reset cycle when no charging can happen (empty slot, creative cell, or fully charged battery)
         val cellForCheck = container.getItem(0)
         val cellItemForCheck = cellForCheck.item as? PowerCellItem
@@ -71,9 +139,9 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             if (tickCounter != 0) { tickCounter = 0; changed = true }
         }
 
-        // Charge battery every CHARGE_INTERVAL ticks
+        // Charge battery every effectiveInterval ticks (reduced by speed upgrades)
         tickCounter++
-        if (tickCounter >= CHARGE_INTERVAL) {
+        if (tickCounter >= effectiveInterval) {
             tickCounter = 0
             if (powerStored > 0) {
                 val cell = container.getItem(0)
