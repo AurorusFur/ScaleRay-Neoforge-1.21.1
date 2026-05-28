@@ -58,8 +58,18 @@ object ModItems {
         Supplier { Item(Item.Properties().stacksTo(1)) })
 
     @JvmField
+    val ADVANCED_SPEED_UPGRADE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "advanced_speed_upgrade",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
     val WIRELESS_CHARGE_UPGRADE: DeferredItem<Item?> = ITEMS.register<Item?>(
         "wireless_charge_upgrade",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
+    val ADVANCED_WIRELESS_UPGRADE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "advanced_wireless_upgrade",
         Supplier { Item(Item.Properties().stacksTo(1)) })
 
     @JvmStatic

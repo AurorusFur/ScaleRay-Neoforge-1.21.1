@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "WEW",
+        "EOE",
+        "WEW"
+    ],
+    "key": {
+        "W": {
+            "item": "scalerays:wireless_charge_upgrade"
+        },
+        "E": {
+            "item": "minecraft:emerald_block"
+        },
+        "O": {
+            "item": "minecraft:ender_eye"
+        }
+    },
+    "result": {
+        "id": "scalerays:advanced_wireless_upgrade",
+        "count": 1
+    }
+}

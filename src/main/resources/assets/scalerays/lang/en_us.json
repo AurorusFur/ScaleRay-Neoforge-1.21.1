@@ -11,5 +11,7 @@
   "item.scalerays.creative_powercell": "Creative Power Cell",
   "block.scalerays.chargingstation": "Charging Station",
   "item.scalerays.speed_upgrade": "Speed Upgrade",
-  "item.scalerays.wireless_charge_upgrade": "Wireless Upgrade"
+  "item.scalerays.advanced_speed_upgrade": "Advanced Speed Upgrade",
+  "item.scalerays.wireless_charge_upgrade": "Wireless Upgrade",
+  "item.scalerays.advanced_wireless_upgrade": "Advanced Wireless Upgrade"
 }

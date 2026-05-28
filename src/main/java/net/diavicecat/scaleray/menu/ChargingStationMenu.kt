@@ -42,12 +42,13 @@ class ChargingStationMenu(
             val upgradeSlotIndex = i
             addSlot(object : Slot(stationContainer, 2 + upgradeSlotIndex, UPGRADE_SLOT_X, UPGRADE_SLOT_Y_BASE + upgradeSlotIndex * 26) {
                 override fun mayPlace(stack: ItemStack): Boolean {
-                    if (stack.item == ModItems.SPEED_UPGRADE.get()) return true
-                    if (stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get()) {
-                        // Only one wireless upgrade allowed in the machine
+                    if (stack.item == ModItems.SPEED_UPGRADE.get() || stack.item == ModItems.ADVANCED_SPEED_UPGRADE.get()) return true
+                    val isWireless = stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get() || stack.item == ModItems.ADVANCED_WIRELESS_UPGRADE.get()
+                    if (isWireless) {
+                        // Only one wireless upgrade (of any kind) allowed in the machine
                         return (0..2).none { j ->
-                            j != upgradeSlotIndex &&
-                            stationContainer.getItem(2 + j).item == ModItems.WIRELESS_CHARGE_UPGRADE.get()
+                            j != upgradeSlotIndex && (stationContainer.getItem(2 + j).item == ModItems.WIRELESS_CHARGE_UPGRADE.get() ||
+                                stationContainer.getItem(2 + j).item == ModItems.ADVANCED_WIRELESS_UPGRADE.get())
                         }
                     }
                     return false
@@ -82,7 +83,9 @@ class ChargingStationMenu(
             index < 6  -> if (!moveItemStackTo(stack, 6, slots.size, true)) return ItemStack.EMPTY
             stack.item is PowerCellItem -> if (!moveItemStackTo(stack, 0, 1, false)) return ItemStack.EMPTY
             stack.item == Items.EMERALD -> if (!moveItemStackTo(stack, 1, 2, false)) return ItemStack.EMPTY
-            stack.item == ModItems.SPEED_UPGRADE.get() || stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get() -> if (!moveItemStackTo(stack, 2, 5, false)) return ItemStack.EMPTY
+            stack.item == ModItems.SPEED_UPGRADE.get() || stack.item == ModItems.ADVANCED_SPEED_UPGRADE.get() ||
+            stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get() || stack.item == ModItems.ADVANCED_WIRELESS_UPGRADE.get() ->
+                if (!moveItemStackTo(stack, 2, 5, false)) return ItemStack.EMPTY
             else -> return ItemStack.EMPTY
         }
 

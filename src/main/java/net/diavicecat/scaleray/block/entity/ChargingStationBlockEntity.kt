@@ -107,8 +107,23 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
 
     fun serverTick() {
         var changed = false
-        val upgradeCount = (2..4).count { container.getItem(it).item == ModItems.SPEED_UPGRADE.get() }
-        val hasWireless = (2..4).any { container.getItem(it).item == ModItems.WIRELESS_CHARGE_UPGRADE.get() }
+        val upgradeCount = (2..4).fold(0) { acc, slot ->
+            acc + when (container.getItem(slot).item) {
+                ModItems.SPEED_UPGRADE.get() -> 1
+                ModItems.ADVANCED_SPEED_UPGRADE.get() -> 2
+                else -> 0
+            }
+        }
+        val wirelessLevel = (2..4).fold(0) { acc, slot ->
+            maxOf(acc, when (container.getItem(slot).item) {
+                ModItems.ADVANCED_WIRELESS_UPGRADE.get() -> 2
+                ModItems.WIRELESS_CHARGE_UPGRADE.get() -> 1
+                else -> 0
+            })
+        }
+        val hasWireless = wirelessLevel > 0
+        val wirelessRange = if (wirelessLevel >= 2) 20.0 else 5.0
+        val wirelessInterval = if (wirelessLevel >= 2) CHARGE_INTERVAL else WIRELESS_INTERVAL
         val newInterval = (CHARGE_INTERVAL - upgradeCount * 50).coerceAtLeast(10)
         if (newInterval != effectiveInterval) {
             tickCounter = (tickCounter.toLong() * newInterval / effectiveInterval).toInt()
@@ -165,15 +180,15 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             }
         }
 
-        // Wireless charging for players within 5 blocks
+        // Wireless charging for players within range
         if (hasWireless) {
             wirelessTickCounter++
-            if (wirelessTickCounter >= WIRELESS_INTERVAL) {
+            if (wirelessTickCounter >= wirelessInterval) {
                 wirelessTickCounter = 0
                 if (powerStored > 0) {
                     val serverLevel = level as? ServerLevel
                     if (serverLevel != null) {
-                        val searchBox = AABB(blockPos).inflate(5.0)
+                        val searchBox = AABB(blockPos).inflate(wirelessRange)
                         for (player in serverLevel.getEntitiesOfClass(ServerPlayer::class.java, searchBox)) {
                             if (powerStored <= 0) break
                             if (chargePlayerBatteryWireless(player)) {
