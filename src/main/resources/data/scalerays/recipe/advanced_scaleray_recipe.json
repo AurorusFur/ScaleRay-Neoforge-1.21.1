@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "CLR",
+        "LSL",
+        "PLO"
+    ],
+    "key": {
+        "C": { "item": "scalerays:color_module" },
+        "L": { "item": "minecraft:sea_lantern" },
+        "R": { "item": "scalerays:extended_range_module" },
+        "S": { "item": "scalerays:scaleray" },
+        "P": { "item": "scalerays:extended_power_module" },
+        "O": { "item": "scalerays:solar_charging_module" }
+    },
+    "result": {
+        "id": "scalerays:advanced_scaleray",
+        "count": 1
+    }
+}

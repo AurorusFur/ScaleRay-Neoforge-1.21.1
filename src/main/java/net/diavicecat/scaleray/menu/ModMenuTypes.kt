@@ -28,5 +28,13 @@ object ModMenuTypes {
             }
         })
 
+    val ADVANCED_SCALE_RAY_MENU: DeferredHolder<MenuType<*>, MenuType<AdvancedScaleRayMenu>> =
+        REGISTRY.register("advanced_scale_ray_menu", Supplier {
+            IMenuTypeExtension.create { windowId, inv, buf ->
+                val hand = net.minecraft.world.InteractionHand.entries[buf.readVarInt()]
+                AdvancedScaleRayMenu(windowId, inv, inv.player.getItemInHand(hand))
+            }
+        })
+
     fun register(bus: IEventBus) = REGISTRY.register(bus)
 }

@@ -15,7 +15,7 @@ import net.minecraft.world.level.Level
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.api.distmarker.OnlyIn
 
-class ScaleRayItem(properties: Properties) : Item(properties) {
+open class ScaleRayItem(properties: Properties) : Item(properties) {
 
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
         if (level.isClientSide) return InteractionResultHolder.pass(player.getItemInHand(hand))

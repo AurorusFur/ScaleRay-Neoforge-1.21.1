@@ -5,6 +5,8 @@ import net.diavicecat.scaleray.ScaleRay
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.world.item.component.ItemContainerContents
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.neoforge.registries.DeferredHolder
@@ -29,6 +31,14 @@ object ModDataComponents {
             DataComponentType.builder<ItemContainerContents>()
                 .persistent(ItemContainerContents.CODEC)
                 .networkSynchronized(ItemContainerContents.STREAM_CODEC)
+                .build()
+        })
+
+    val BEAM_COLOR: DeferredHolder<DataComponentType<*>, DataComponentType<Int>> =
+        REGISTRY.register("beam_color", Supplier {
+            DataComponentType.builder<Int>()
+                .persistent(Codec.INT)
+                .networkSynchronized(ByteBufCodecs.INT)
                 .build()
         })
 

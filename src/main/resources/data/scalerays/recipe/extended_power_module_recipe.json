@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "CWC",
+        "WPW",
+        "CWC"
+    ],
+    "key": {
+        "C": { "item": "minecraft:crimson_fungus" },
+        "W": { "item": "minecraft:warped_fungus" },
+        "P": { "item": "scalerays:module_plate" }
+    },
+    "result": {
+        "id": "scalerays:extended_power_module",
+        "count": 1
+    }
+}

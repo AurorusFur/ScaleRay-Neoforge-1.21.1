@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "EFE",
+        "FPF",
+        "EFE"
+    ],
+    "key": {
+        "E": { "item": "minecraft:ender_eye" },
+        "F": { "item": "minecraft:fermented_spider_eye" },
+        "P": { "item": "scalerays:module_plate" }
+    },
+    "result": {
+        "id": "scalerays:extended_range_module",
+        "count": 1
+    }
+}

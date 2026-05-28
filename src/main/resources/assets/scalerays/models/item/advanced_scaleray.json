@@ -1,0 +1,7 @@
+{
+	"parent": "scalerays:item/scaleray",
+	"textures": {
+		"0": "scalerays:item/advanced_raygun",
+		"particle": "scalerays:item/advanced_raygun"
+	}
+}

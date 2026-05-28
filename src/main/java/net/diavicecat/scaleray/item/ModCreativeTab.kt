@@ -20,6 +20,7 @@ object ModCreativeTab {
             .title(Component.translatable("itemGroup.scalerays.main"))
             .displayItems { _, output ->
                 output.accept(ModItems.SCALERAY.get())
+                output.accept(ModItems.ADVANCED_SCALERAY.get())
                 output.accept(ModItems.POWERCELL.get())
                 output.accept(ModItems.UPGRADED_POWERCELL.get())
                 output.accept(ModItems.ADVANCED_POWERCELL.get())
@@ -31,6 +32,11 @@ object ModCreativeTab {
                 output.accept(ModItems.ADVANCED_SPEED_UPGRADE.get())
                 output.accept(ModItems.WIRELESS_CHARGE_UPGRADE.get())
                 output.accept(ModItems.ADVANCED_WIRELESS_UPGRADE.get())
+                output.accept(ModItems.MODULE_PLATE.get())
+                output.accept(ModItems.COLOR_MODULE.get())
+                output.accept(ModItems.EXTENDED_RANGE_MODULE.get())
+                output.accept(ModItems.EXTENDED_POWER_MODULE.get())
+                output.accept(ModItems.SOLAR_CHARGING_MODULE.get())
                 output.accept(ModBlocks.CHARGINGSTATION.get())
                 output.accept(ModBlocks.SCALINGCORE.get())
             }

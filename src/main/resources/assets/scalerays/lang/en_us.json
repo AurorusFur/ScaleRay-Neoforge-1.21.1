@@ -13,5 +13,11 @@
   "item.scalerays.speed_upgrade": "Speed Upgrade",
   "item.scalerays.advanced_speed_upgrade": "Advanced Speed Upgrade",
   "item.scalerays.wireless_charge_upgrade": "Wireless Upgrade",
-  "item.scalerays.advanced_wireless_upgrade": "Advanced Wireless Upgrade"
+  "item.scalerays.advanced_wireless_upgrade": "Advanced Wireless Upgrade",
+  "item.scalerays.advanced_scaleray": "Advanced Scale Ray",
+  "item.scalerays.module_plate": "Module Plate",
+  "item.scalerays.color_module": "Color Module",
+  "item.scalerays.extended_range_module": "Extended Range Module",
+  "item.scalerays.extended_power_module": "Extended Power Module",
+  "item.scalerays.solar_charging_module": "Solar Charging Module"
 }

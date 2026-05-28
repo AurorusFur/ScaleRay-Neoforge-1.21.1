@@ -15,13 +15,13 @@ import org.joml.Vector3f
 @EventBusSubscriber(modid = ScaleRay.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = [Dist.CLIENT])
 object ClientBeamRenderer {
 
-    private data class ActiveBeam(val start: Vec3, val end: Vec3, val expiresAt: Long)
+    private data class ActiveBeam(val start: Vec3, val end: Vec3, val color: Int, val expiresAt: Long)
 
     private val activeBeams = mutableListOf<ActiveBeam>()
 
-    fun addBeam(start: Vec3, end: Vec3) {
+    fun addBeam(start: Vec3, end: Vec3, color: Int = 0x00E63C) {
         synchronized(activeBeams) {
-            activeBeams.add(ActiveBeam(start, end, System.currentTimeMillis() + 500))
+            activeBeams.add(ActiveBeam(start, end, color, System.currentTimeMillis() + 500))
         }
     }
 
@@ -45,7 +45,6 @@ object ClientBeamRenderer {
         val bufferSource = mc.renderBuffers().bufferSource()
         val partialTick = event.partialTick.getGameTimeDeltaPartialTick(false)
         val gameTime = level.gameTime
-        val green = 0x00E63C
         val up = Vector3f(0f, 1f, 0f)
 
         for (beam in beams) {
@@ -70,7 +69,7 @@ object ClientBeamRenderer {
                 poseStack, bufferSource, BeaconRenderer.BEAM_LOCATION,
                 partialTick, 1.0f, gameTime,
                 0, height,
-                green, 0.08f, 0.15f
+                beam.color, 0.08f, 0.15f
             )
 
             poseStack.popPose()

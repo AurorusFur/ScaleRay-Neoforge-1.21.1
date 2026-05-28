@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "RAY",
+        "UPG",
+        "MCB"
+    ],
+    "key": {
+        "R": { "item": "minecraft:red_dye" },
+        "A": { "item": "minecraft:orange_dye" },
+        "Y": { "item": "minecraft:yellow_dye" },
+        "G": { "item": "minecraft:lime_dye" },
+        "C": { "item": "minecraft:cyan_dye" },
+        "B": { "item": "minecraft:blue_dye" },
+        "U": { "item": "minecraft:purple_dye" },
+        "M": { "item": "minecraft:magenta_dye" },
+        "P": { "item": "scalerays:module_plate" }
+    },
+    "result": {
+        "id": "scalerays:color_module",
+        "count": 1
+    }
+}

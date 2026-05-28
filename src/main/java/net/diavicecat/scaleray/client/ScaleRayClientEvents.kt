@@ -1,7 +1,10 @@
 package net.diavicecat.scaleray.client
 
 import net.diavicecat.scaleray.ScaleRay
+import net.diavicecat.scaleray.component.ModDataComponents
 import net.diavicecat.scaleray.item.ModItems
+import net.diavicecat.scaleray.item.custom.ScaleRayItem
+import net.diavicecat.scaleray.network.LaserBeamPayload
 import net.diavicecat.scaleray.network.ScaleRayPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.world.phys.Vec3
@@ -17,7 +20,7 @@ object ScaleRayClientEvents {
     @JvmStatic
     @SubscribeEvent
     fun onRightClick(event: PlayerInteractEvent.RightClickItem) {
-        if (event.itemStack.item != ModItems.SCALERAY.get()) return
+        if (event.itemStack.item !is ScaleRayItem) return
 
         val mc = Minecraft.getInstance()
         val player = mc.player ?: return

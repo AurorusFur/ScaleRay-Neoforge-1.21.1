@@ -1,13 +1,13 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "top":      "scalerays:block/chargingstation",
-    "bottom":   "scalerays:block/chargingstation",
-    "north":    "scalerays:block/chargingstation",
-    "south":    "scalerays:block/chargingstation",
-    "east":     "scalerays:block/chargingstation",
-    "west":     "scalerays:block/chargingstation",
-    "particle": "scalerays:block/chargingstation"
+    "top":      "scalerays:block/scalingcore",
+    "bottom":   "scalerays:block/scalingcore",
+    "north":    "scalerays:block/scalingcore",
+    "south":    "scalerays:block/scalingcore",
+    "east":     "scalerays:block/scalingcore",
+    "west":     "scalerays:block/scalingcore",
+    "particle": "scalerays:block/scalingcore"
   },
   "elements": [{
     "from": [0, 0, 0], "to": [16, 16, 16],

@@ -8,12 +8,17 @@ import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.ItemContainerContents
 
-class ScaleRayMenu(containerId: Int, private val playerInv: Inventory, val rayStack: ItemStack) :
-    AbstractContainerMenu(ModMenuTypes.SCALE_RAY_MENU.get(), containerId) {
+open class ScaleRayMenu(
+    containerId: Int,
+    private val playerInv: Inventory,
+    val rayStack: ItemStack,
+    menuType: MenuType<*> = ModMenuTypes.SCALE_RAY_MENU.get()
+) : AbstractContainerMenu(menuType, containerId) {
 
     val cellContainer = SimpleContainer(1).apply {
         val existing = rayStack.get(ModDataComponents.INSERTED_CELL.get())

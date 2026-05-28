@@ -1,6 +1,7 @@
 package net.diavicecat.scaleray.item
 
 import net.diavicecat.scaleray.ScaleRay
+import net.diavicecat.scaleray.item.custom.AdvancedScaleRayItem
 import net.diavicecat.scaleray.item.custom.PowerCellItem
 import net.diavicecat.scaleray.item.custom.ScaleRayItem
 import net.minecraft.world.item.Item
@@ -16,6 +17,11 @@ object ModItems {
     val SCALERAY: DeferredItem<Item?> = ITEMS.register<Item?>(
         "scaleray",
         Supplier { ScaleRayItem(Item.Properties()) })
+
+    @JvmField
+    val ADVANCED_SCALERAY: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "advanced_scaleray",
+        Supplier { AdvancedScaleRayItem(Item.Properties()) })
 
     @JvmField
     val SCALETECHCASING: DeferredItem<Item?> = ITEMS.register<Item?>(
@@ -70,6 +76,31 @@ object ModItems {
     @JvmField
     val ADVANCED_WIRELESS_UPGRADE: DeferredItem<Item?> = ITEMS.register<Item?>(
         "advanced_wireless_upgrade",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
+    val MODULE_PLATE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "module_plate",
+        Supplier { Item(Item.Properties()) })
+
+    @JvmField
+    val COLOR_MODULE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "color_module",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
+    val EXTENDED_RANGE_MODULE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "extended_range_module",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
+    val EXTENDED_POWER_MODULE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "extended_power_module",
+        Supplier { Item(Item.Properties().stacksTo(1)) })
+
+    @JvmField
+    val SOLAR_CHARGING_MODULE: DeferredItem<Item?> = ITEMS.register<Item?>(
+        "solar_charging_module",
         Supplier { Item(Item.Properties().stacksTo(1)) })
 
     @JvmStatic

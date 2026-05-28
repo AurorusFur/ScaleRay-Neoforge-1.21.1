@@ -4,14 +4,17 @@ import com.mojang.logging.LogUtils
 import net.diavicecat.scaleray.block.ModBlockEntities
 import net.diavicecat.scaleray.block.ModBlocks
 import net.diavicecat.scaleray.block.entity.ChargingStationBlockEntity
+import net.diavicecat.scaleray.client.AdvancedScaleRayMenuScreen
 import net.diavicecat.scaleray.client.ChargingStationMenuScreen
 import net.diavicecat.scaleray.client.ScaleRayMenuScreen
 import net.diavicecat.scaleray.item.ModCreativeTab
 import net.diavicecat.scaleray.item.ModItems
 import net.diavicecat.scaleray.component.ModDataComponents
+import net.diavicecat.scaleray.item.custom.AdvancedScaleRayItem
 import net.diavicecat.scaleray.item.custom.PowerCellItem
 import net.diavicecat.scaleray.item.custom.ScaleRayItem
 import net.diavicecat.scaleray.menu.ModMenuTypes
+import net.diavicecat.scaleray.network.BeamColorPayload
 import net.diavicecat.scaleray.network.LaserBeamPayload
 import net.diavicecat.scaleray.network.PowerCellActionPayload
 import net.diavicecat.scaleray.network.ScaleRayPayload
@@ -24,6 +27,7 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.component.ItemContainerContents
+import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.neoforge.network.PacketDistributor
@@ -41,6 +45,7 @@ import net.neoforged.neoforge.capabilities.Capabilities
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.server.ServerStartingEvent
+import net.neoforged.neoforge.event.tick.PlayerTickEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.network.handling.IPayloadContext
 import org.slf4j.Logger
@@ -66,9 +71,14 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
                 ScaleRayPayload.STREAM_CODEC,
                 ::handleScaleRayPayload
             )
+            registrar.playToServer(
+                BeamColorPayload.TYPE,
+                BeamColorPayload.STREAM_CODEC,
+                ::handleBeamColorPayload
+            )
             registrar.playToClient(LaserBeamPayload.TYPE, LaserBeamPayload.STREAM_CODEC) { payload, context ->
                 context.enqueueWork {
-                    net.diavicecat.scaleray.client.ClientBeamRenderer.addBeam(payload.start, payload.end)
+                    net.diavicecat.scaleray.client.ClientBeamRenderer.addBeam(payload.start, payload.end, payload.color)
                 }
             }
         }
@@ -79,10 +89,11 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.register(this)
 
         modEventBus.addListener<RegisterCapabilitiesEvent> { event ->
-            event.registerBlockEntity(
+            event.registerBlock(
                 Capabilities.ItemHandler.BLOCK,
-                ModBlockEntities.CHARGING_STATION.get()
-            ) { be, _ -> be.itemHandler }
+                net.diavicecat.scaleray.capability.ChargingStationCapProvider.INSTANCE,
+                ModBlocks.CHARGINGSTATION.get()
+            )
         }
 
         ModItems.register(modEventBus)
@@ -95,6 +106,7 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener<RegisterMenuScreensEvent> { event ->
                 event.register(ModMenuTypes.SCALE_RAY_MENU.get(), ::ScaleRayMenuScreen)
+                event.register(ModMenuTypes.ADVANCED_SCALE_RAY_MENU.get(), ::AdvancedScaleRayMenuScreen)
                 event.register(ModMenuTypes.CHARGING_STATION_MENU.get(), ::ChargingStationMenuScreen)
             }
         }
@@ -113,8 +125,11 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
             val level  = player.level() as ServerLevel
             val server = player.server
 
+            val isAdvanced = player.mainHandItem.item is AdvancedScaleRayItem
+            val range = if (isAdvanced) 30.0 else 10.0
+
             val target: Entity = when (payload.target) {
-                ScaleRayPayload.Target.OBSERVED -> getLookedAtEntity(player, 10.0) ?: return@enqueueWork
+                ScaleRayPayload.Target.OBSERVED -> getLookedAtEntity(player, range) ?: return@enqueueWork
                 ScaleRayPayload.Target.SELF     -> player
             }
 
@@ -125,13 +140,72 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
 
             applyScale(target, payload.mode, payload.power, server)
 
-            // Only show the laser beam when targeting an observed entity.
             if (payload.target == ScaleRayPayload.Target.OBSERVED) {
-                spawnLaserEffects(player, payload.beamStart, payload.beamEnd, level)
+                val color = player.mainHandItem.get(ModDataComponents.BEAM_COLOR.get()) ?: LaserBeamPayload.DEFAULT_COLOR
+                spawnLaserEffects(player, payload.beamStart, payload.beamEnd, level, color)
             } else {
                 level.playSound(null, player.x, player.y, player.z,
                     SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0f, 1.8f)
             }
+        }
+    }
+
+    private fun handleBeamColorPayload(payload: BeamColorPayload, context: IPayloadContext) {
+        context.enqueueWork {
+            val player = context.player() as? ServerPlayer ?: return@enqueueWork
+            val ray = when {
+                player.mainHandItem.item is AdvancedScaleRayItem -> player.mainHandItem
+                player.offhandItem.item is AdvancedScaleRayItem  -> player.offhandItem
+                else -> return@enqueueWork
+            }
+            ray.set(ModDataComponents.BEAM_COLOR.get(), payload.color)
+        }
+    }
+
+    @SubscribeEvent
+    fun onPlayerTick(event: PlayerTickEvent.Post) {
+        val player = event.entity
+        val level = player.level()
+        if (level.isClientSide) return
+        if (level.dimension() != Level.OVERWORLD) return
+
+        val gt = level.gameTime
+        // Log every 200 ticks (10 s) so we can see the counter moving
+        if (gt % 200L == 0L) {
+            LOGGER.info("SolarCharge tick: gameTime={} dayTime={} isDay={}", gt, (level as? net.minecraft.server.level.ServerLevel)?.dayTime ?: -1, level.isDay)
+        }
+
+        if (!level.isDay) return
+        // Use 2400-tick interval (2 min) for testing; bump to 12000 for production
+        if (gt % 2400L != 0L) return
+
+        for (stack in (player.inventory.items + player.inventory.offhand)) {
+            if (stack.item !is AdvancedScaleRayItem) continue
+            val cellContents = stack.get(ModDataComponents.INSERTED_CELL.get())
+            if (cellContents == null) {
+                LOGGER.info("SolarCharge: AdvancedScaleRay found but no cell inserted")
+                continue
+            }
+            val cell = cellContents.getStackInSlot(0)
+            if (cell.isEmpty) {
+                LOGGER.info("SolarCharge: cell slot empty")
+                continue
+            }
+            val cellItem = cell.item as? PowerCellItem
+            if (cellItem == null) {
+                LOGGER.info("SolarCharge: cell item is not PowerCellItem ({})", cell.item)
+                continue
+            }
+            if (cellItem.isCreative) continue
+            val charges = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
+            if (charges >= cellItem.maxCharges) {
+                LOGGER.info("SolarCharge: cell already full ({}/{})", charges, cellItem.maxCharges)
+                continue
+            }
+            val newCell = cell.copy()
+            newCell.set(ModDataComponents.POWER_CHARGES.get(), charges + 1)
+            stack.set(ModDataComponents.INSERTED_CELL.get(), ItemContainerContents.fromItems(listOf(newCell)))
+            LOGGER.info("SolarCharge: charged cell to {}/{}", charges + 1, cellItem.maxCharges)
         }
     }
 
@@ -210,8 +284,8 @@ class ScaleRay(modEventBus: IEventBus, modContainer: ModContainer) {
         return closestEntity
     }
 
-    private fun spawnLaserEffects(player: ServerPlayer, beamStart: Vec3, beamEnd: Vec3, level: ServerLevel) {
-        val beamPayload = LaserBeamPayload(beamStart, beamEnd)
+    private fun spawnLaserEffects(player: ServerPlayer, beamStart: Vec3, beamEnd: Vec3, level: ServerLevel, color: Int = LaserBeamPayload.DEFAULT_COLOR) {
+        val beamPayload = LaserBeamPayload(beamStart, beamEnd, color)
 
         for (nearby in level.players()) {
             if (nearby.position().distanceTo(player.position()) <= 64.0) {

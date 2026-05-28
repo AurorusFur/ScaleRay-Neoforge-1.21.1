@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "GEG",
+        "EPE",
+        "GEG"
+    ],
+    "key": {
+        "E": { "item": "minecraft:emerald_block" },
+        "G": { "item": "minecraft:gold_ingot" },
+        "P": { "item": "scalerays:module_plate" }
+    },
+    "result": {
+        "id": "scalerays:solar_charging_module",
+        "count": 1
+    }
+}
