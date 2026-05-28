@@ -39,8 +39,19 @@ class ChargingStationMenu(
         })
 
         for (i in 0..2) {
-            addSlot(object : Slot(stationContainer, 2 + i, UPGRADE_SLOT_X, UPGRADE_SLOT_Y_BASE + i * 26) {
-                override fun mayPlace(stack: ItemStack) = stack.item == ModItems.SPEED_UPGRADE.get()
+            val upgradeSlotIndex = i
+            addSlot(object : Slot(stationContainer, 2 + upgradeSlotIndex, UPGRADE_SLOT_X, UPGRADE_SLOT_Y_BASE + upgradeSlotIndex * 26) {
+                override fun mayPlace(stack: ItemStack): Boolean {
+                    if (stack.item == ModItems.SPEED_UPGRADE.get()) return true
+                    if (stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get()) {
+                        // Only one wireless upgrade allowed in the machine
+                        return (0..2).none { j ->
+                            j != upgradeSlotIndex &&
+                            stationContainer.getItem(2 + j).item == ModItems.WIRELESS_CHARGE_UPGRADE.get()
+                        }
+                    }
+                    return false
+                }
                 override fun getMaxStackSize() = 1
             })
         }
@@ -71,7 +82,7 @@ class ChargingStationMenu(
             index < 6  -> if (!moveItemStackTo(stack, 6, slots.size, true)) return ItemStack.EMPTY
             stack.item is PowerCellItem -> if (!moveItemStackTo(stack, 0, 1, false)) return ItemStack.EMPTY
             stack.item == Items.EMERALD -> if (!moveItemStackTo(stack, 1, 2, false)) return ItemStack.EMPTY
-            stack.item == ModItems.SPEED_UPGRADE.get() -> if (!moveItemStackTo(stack, 2, 5, false)) return ItemStack.EMPTY
+            stack.item == ModItems.SPEED_UPGRADE.get() || stack.item == ModItems.WIRELESS_CHARGE_UPGRADE.get() -> if (!moveItemStackTo(stack, 2, 5, false)) return ItemStack.EMPTY
             else -> return ItemStack.EMPTY
         }
 
@@ -90,7 +101,7 @@ class ChargingStationMenu(
         const val EMERALD_SLOT_X = 109
         const val EMERALD_SLOT_Y = 30
         // Side-docked upgrade slots: imageWidth(178) + 5 inner offset; stacked at +26 each
-        const val UPGRADE_SLOT_X      = 183
+        const val UPGRADE_SLOT_X      = 182
         const val UPGRADE_SLOT_Y_BASE = 5
         const val OUTPUT_SLOT_X       = 81
         const val OUTPUT_SLOT_Y       = 53

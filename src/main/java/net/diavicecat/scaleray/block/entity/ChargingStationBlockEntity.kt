@@ -2,7 +2,9 @@ package net.diavicecat.scaleray.block.entity
 
 import net.diavicecat.scaleray.block.ModBlockEntities
 import net.diavicecat.scaleray.component.ModDataComponents
+import net.diavicecat.scaleray.item.ModItems
 import net.diavicecat.scaleray.item.custom.PowerCellItem
+import net.diavicecat.scaleray.item.custom.ScaleRayItem
 import net.diavicecat.scaleray.menu.ChargingStationMenu
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
@@ -10,6 +12,8 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.network.chat.Component
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.Containers
 import net.minecraft.world.MenuProvider
 import net.minecraft.world.SimpleContainer
@@ -19,9 +23,11 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.inventory.ContainerData
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.component.ItemContainerContents
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.phys.AABB
 import net.neoforged.neoforge.items.IItemHandler
 
 class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
@@ -31,6 +37,7 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
     var powerStored = 0
     private var tickCounter = 0
     private var effectiveInterval = CHARGE_INTERVAL
+    private var wirelessTickCounter = 0
 
     val containerData = object : ContainerData {
         override fun get(index: Int) = when (index) {
@@ -100,7 +107,8 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
 
     fun serverTick() {
         var changed = false
-        val upgradeCount = (2..4).count { !container.getItem(it).isEmpty }
+        val upgradeCount = (2..4).count { container.getItem(it).item == ModItems.SPEED_UPGRADE.get() }
+        val hasWireless = (2..4).any { container.getItem(it).item == ModItems.WIRELESS_CHARGE_UPGRADE.get() }
         val newInterval = (CHARGE_INTERVAL - upgradeCount * 50).coerceAtLeast(10)
         if (newInterval != effectiveInterval) {
             tickCounter = (tickCounter.toLong() * newInterval / effectiveInterval).toInt()
@@ -157,7 +165,59 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
             }
         }
 
+        // Wireless charging for players within 5 blocks
+        if (hasWireless) {
+            wirelessTickCounter++
+            if (wirelessTickCounter >= WIRELESS_INTERVAL) {
+                wirelessTickCounter = 0
+                if (powerStored > 0) {
+                    val serverLevel = level as? ServerLevel
+                    if (serverLevel != null) {
+                        val searchBox = AABB(blockPos).inflate(5.0)
+                        for (player in serverLevel.getEntitiesOfClass(ServerPlayer::class.java, searchBox)) {
+                            if (powerStored <= 0) break
+                            if (chargePlayerBatteryWireless(player)) {
+                                powerStored--
+                                changed = true
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            wirelessTickCounter = 0
+        }
+
         if (changed) setChanged()
+    }
+
+    private fun chargePlayerBatteryWireless(player: ServerPlayer): Boolean {
+        for (stack in player.inventory.items + player.inventory.offhand) {
+            if (stack.isEmpty) continue
+            val cellItem = stack.item as? PowerCellItem
+            if (cellItem != null && !cellItem.isCreative) {
+                val charges = stack.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
+                if (charges < cellItem.maxCharges) {
+                    stack.set(ModDataComponents.POWER_CHARGES.get(), charges + 1)
+                    return true
+                }
+            }
+            if (stack.item is ScaleRayItem) {
+                val inserted = stack.get(ModDataComponents.INSERTED_CELL.get()) ?: continue
+                val cell = inserted.getStackInSlot(0)
+                if (cell.isEmpty) continue
+                val rayCellItem = cell.item as? PowerCellItem ?: continue
+                if (rayCellItem.isCreative) continue
+                val charges = cell.get(ModDataComponents.POWER_CHARGES.get()) ?: 0
+                if (charges < rayCellItem.maxCharges) {
+                    val newCell = cell.copy()
+                    newCell.set(ModDataComponents.POWER_CHARGES.get(), charges + 1)
+                    stack.set(ModDataComponents.INSERTED_CELL.get(), ItemContainerContents.fromItems(listOf(newCell)))
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     fun dropContents(level: Level, pos: BlockPos) {
@@ -199,6 +259,7 @@ class ChargingStationBlockEntity(pos: BlockPos, state: BlockState) :
 
     companion object {
         const val MAX_POWER = 50
-        const val CHARGE_INTERVAL = 200 // 10 seconds
+        const val CHARGE_INTERVAL = 200   // 10 seconds
+        const val WIRELESS_INTERVAL = CHARGE_INTERVAL * 3 // 3x slower than direct charging
     }
 }
