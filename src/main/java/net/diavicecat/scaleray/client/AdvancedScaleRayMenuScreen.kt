@@ -5,6 +5,7 @@ import net.diavicecat.scaleray.menu.AdvancedScaleRayMenu
 import net.diavicecat.scaleray.network.BeamColorPayload
 import net.diavicecat.scaleray.network.ScaleRayPayload.Mode
 import net.diavicecat.scaleray.network.ScaleRayPayload.Target
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.AbstractSliderButton
 import net.minecraft.client.gui.components.AbstractWidget
@@ -38,15 +39,17 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
     private var isDraggingHue = false
 
     private lateinit var hexInput: EditBox
-    private val coveredWidgets = mutableListOf<AbstractWidget>()
 
     // Picker dimensions (fixed)
     private val svSize = 96
     private val hueBarW = 12
     private val pad = 4
     private val hexRowH = 16
-    private val pickerW = pad + svSize + pad + hueBarW + pad       // 120
-    private val pickerH = pad + svSize + pad + hexRowH + pad        // 124
+    private val swatchSize = 12
+    private val swatchGap = 2
+    private val paletteRowH = swatchSize
+    private val pickerW = pad + svSize + pad + hueBarW + pad                          // 120
+    private val pickerH = pad + svSize + pad + hexRowH + pad + paletteRowH + pad      // 138
 
     // Picker origin — set in init()
     private var pickerX = 0
@@ -62,6 +65,7 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
         inventoryLabelX = ScaleRayMenu_INV_X
         inventoryLabelY = ScaleRayMenu_INV_Y - 12
 
+        ScaleRayConfig.loadPalette(Minecraft.getInstance().gameDirectory)
         selectedColor = menu.rayStack.get(ModDataComponents.BEAM_COLOR.get()) ?: 0x00E63C
         val (h, s, v) = rgbToHsv(selectedColor)
         currentHue = h; currentSat = s; currentVal = v
@@ -75,20 +79,18 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
         pickerX = lx + imageWidth - pickerW - pad
         pickerY = (slotsCenterY - pickerH / 2).coerceIn(ty, ty + ctrlH - pickerH)
 
-        coveredWidgets.clear()
-
-        coveredWidgets += addRenderableWidget(Button.builder(Component.literal(modeLabel(ScaleRayConfig.mode))) {
+        addRenderableWidget(Button.builder(Component.literal(modeLabel(ScaleRayConfig.mode))) {
             ScaleRayConfig.mode = nextMode(ScaleRayConfig.mode)
             it.message = Component.literal(modeLabel(ScaleRayConfig.mode))
         }.bounds(lx + 8, ty + 36, btnW, 20).build())
 
-        coveredWidgets += addRenderableWidget(Button.builder(Component.literal(targetLabel(ScaleRayConfig.target))) {
+        addRenderableWidget(Button.builder(Component.literal(targetLabel(ScaleRayConfig.target))) {
             ScaleRayConfig.target = nextTarget(ScaleRayConfig.target)
             it.message = Component.literal(targetLabel(ScaleRayConfig.target))
         }.bounds(lx + 8, ty + 80, btnW, 20).build())
 
         val sliderInitial = ((ScaleRayConfig.power - minPower) / (maxPower - minPower)).toDouble()
-        coveredWidgets += addRenderableWidget(object : AbstractSliderButton(lx + 8, ty + 112, btnW, 20, Component.empty(), sliderInitial) {
+        addRenderableWidget(object : AbstractSliderButton(lx + 8, ty + 112, btnW, 20, Component.empty(), sliderInitial) {
             init { updateMessage() }
             override fun updateMessage() {
                 val p = (value * (maxPower - minPower) + minPower).toFloat()
@@ -199,6 +201,18 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
         guiGraphics.fill(previewX, hexRowY, previewX + hexRowH, hexRowY + hexRowH, selectedColor or (0xFF shl 24))
         guiGraphics.renderOutline(previewX - 1, hexRowY - 1, hexRowH + 2, hexRowH + 2, 0xFF666666.toInt())
 
+        // Palette row: 8 swatches, left-click = load, right-click = save
+        val paletteY = hexRowY + hexRowH + pad
+        for (i in 0 until 8) {
+            val sx = pickerX + pad + i * (swatchSize + swatchGap)
+            val color = ScaleRayConfig.palette[i]
+            guiGraphics.fill(sx, paletteY, sx + swatchSize, paletteY + swatchSize, color or (0xFF shl 24))
+            val hovered = mouseX >= sx && mouseX < sx + swatchSize && mouseY >= paletteY && mouseY < paletteY + swatchSize
+            if (hovered) guiGraphics.fill(sx, paletteY, sx + swatchSize, paletteY + swatchSize, 0x55FFFFFF)
+            guiGraphics.renderOutline(sx - 1, paletteY - 1, swatchSize + 2, swatchSize + 2,
+                if (color == selectedColor) 0xFFFFFFFF.toInt() else 0xFF555555.toInt())
+        }
+
         ps.popPose()
     }
 
@@ -268,6 +282,28 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
                 hexInput.mouseClicked(mouseX, mouseY, button)
                 setFocused(hexInput)
                 return true
+            }
+            // Palette row
+            val paletteY = pickerY + pad + svSize + pad + hexRowH + pad
+            if (mouseY >= paletteY && mouseY < paletteY + swatchSize) {
+                for (i in 0 until 8) {
+                    val sx = pickerX + pad + i * (swatchSize + swatchGap)
+                    if (mouseX >= sx && mouseX < sx + swatchSize) {
+                        if (button == 1) {
+                            // Right-click: save current color to this slot
+                            ScaleRayConfig.palette[i] = selectedColor
+                            ScaleRayConfig.savePalette(Minecraft.getInstance().gameDirectory)
+                        } else {
+                            // Left-click: load color from this slot
+                            val loaded = ScaleRayConfig.palette[i]
+                            val (h, s, v) = rgbToHsv(loaded)
+                            currentHue = h; currentSat = s; currentVal = v
+                            selectedColor = loaded
+                            hexInput.value = colorToHex(selectedColor)
+                        }
+                        return true
+                    }
+                }
             }
             // Click outside panel → confirm and close
             if (mouseX < pickerX || mouseX > pickerX + pickerW || mouseY < pickerY || mouseY > pickerY + pickerH) {
@@ -342,7 +378,6 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
         showColorPicker = true
         hexInput.visible = true
         hexInput.value = colorToHex(selectedColor)
-        coveredWidgets.forEach { it.active = false }
     }
 
     private fun closePicker() {
@@ -350,7 +385,6 @@ class AdvancedScaleRayMenuScreen(menu: AdvancedScaleRayMenu, inv: Inventory, tit
         showColorPicker = false
         hexInput.visible = false
         hexInput.setFocused(false)
-        coveredWidgets.forEach { it.active = true }
     }
 
     private fun hsvToArgb(h: Float, s: Float, v: Float): Int {
